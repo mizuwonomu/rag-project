@@ -3,7 +3,8 @@
 
 #Virtual environment
 .venv/
-
+#API_test
+.test/
 #VS cache
 .vscode/
 *.log
