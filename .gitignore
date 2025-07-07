@@ -1,0 +1,10 @@
+#Who the fuck would push API key
+.env
+
+#Virtual environment
+.venv/
+
+#VS cache
+.vscode/
+*.log
+*.txt
