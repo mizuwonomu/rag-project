@@ -1,27 +1,36 @@
 import re
+from markdown import markdown
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from bs4 import BeautifulSoup
 
-file_path = "D:\\rag-project\\data\\summary.txt"
-def load_and_clean_content(file_path):
-    with open(file_path, 'r', encoding = "utf-8") as f:
+def doc_cleaning(file_path):
+    print(f"Đang đọc file {file_path}, bình tĩnh")
+    with open(file_path, "r", encoding= "utf-8") as f:
         text = f.read()
     
-    #Xóa khoảng trắng thừa ở đầu và cuối dòng
-    text = "\n".join(line.strip() for line in text.splitlines())
+    #Convert từ markdown sang html
+    html = markdown(text)
 
-    #Thay thế nhiều dấu xuống dòng bằng 1 dấu 
-    text = re.sub(r'\n{2,}', 'n', text)
+    #Lột các tag html, chỉ lấy text
 
-    print("Đã xong")
-    return text
-def chunk_text(text, chunk_size):
-    print(f"Cắt text thành các chunk độ dài {chunk_size} kí tự")
-    chunks = []
+    soup = BeautifulSoup(html, "html.parser")
+    cleaned_text = soup.get_text()
 
-    for i in range(0, len(text), chunk_size):
-        chunk = text[i:i + chunk_size] #cắt từ vị trí i đến vị trí i + chunk_size
-        #Nếu đoạn cuối có độ dài ngắn hơn chunk_size, sẽ tự động lấy hết văn bản
-        chunks.append(chunk)
-    
+    #Cleaning lần cuối
+    cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text).strip()
+    #bất cứ đoạn nào có nhiều hơn enter 3 lần liên tiếp, sẽ chuyển về định dạng ngắt dòng chuẩn là \n\n
+    return cleaned_text
+
+def chunking_doc(text):
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size = 500,
+        chunk_overlap = 50, #dùng để  "nhắc lại các số lượng kí tự cuối". ví dụ như chunk 1 có 50 kí tự cuối, thì mở đầu chunk 2 cx sẽ có bấy nhiêu kí tự từ chunk 1
+        length_function = len, #sử dụng chính hàm len để đo độ dài chuỗi, đánh dấu toàn bộ như dấu cách, kí tự,..
+    )
+
+    chunks = text_splitter.split_text(text)
+
+    print(f"Cắt thành công {len(chunks)} chunks.")
+
     return chunks
-
 

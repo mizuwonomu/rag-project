@@ -1,29 +1,26 @@
-from src.data_processing import chunk_text, load_and_clean_content
+from src.data_processing import doc_cleaning, chunking_doc
 
-file_path = "D:\\rag-project\\data\\summary.txt"
-
-chunk_size = 500
+file_path = "data\\summary.txt"
 
 def main():
-    cleaned_text = load_and_clean_content(file_path)
+    cleaned_text = doc_cleaning(file_path)
 
-    print("\n----Sau khi clean-----------")
+    print("\n---Sau khi cleaning (300 kí tự):")
     print(cleaned_text[:300])
-    print("------------------------\n")
+    print("-----------------\n")
 
-    chunked = chunk_text(cleaned_text,chunk_size)
-    print("\n--Hai chunk đầu tiên--")
+    text_chunks = chunking_doc(cleaned_text)
 
-    if len(chunked) > 0:
-        print("--- Chunk 1 ---")
-        print(chunked[0])
-    if len(chunked) > 1:
-        print("--- Chunk 2 ---")
-        print(chunked[1])
-    
-    print("------------------")
+    print("\n--Hai chunk đầu tiên----")
+    if (len(text_chunks) > 0):
+        print("---Chunk 1---")
+        print((text_chunks[0]))
+    if (len(text_chunks) > 1):
+        print("---Chunk 2---")
+        print((text_chunks[1]))
+
+    print("--------------------")
 
 if __name__ == "__main__":
     main()
-
 
