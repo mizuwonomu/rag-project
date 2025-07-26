@@ -19,3 +19,5 @@ chroma_db/
 
 #chroma database
 chroma_db/
+
+!requirements.txt
