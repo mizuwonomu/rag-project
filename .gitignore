@@ -9,3 +9,6 @@
 .vscode/
 *.log
 *.txt
+
+#chroma
+.chroma_db/
