@@ -2,7 +2,7 @@ import re
 from markdown import markdown
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from bs4 import BeautifulSoup
-
+from langchain_core.documents import Document
 def doc_cleaning(file_path):
     print(f"Đang đọc file {file_path}, bình tĩnh")
     with open(file_path, "r", encoding= "utf-8") as f:
@@ -28,8 +28,8 @@ def chunking_doc(text):
         length_function = len, #sử dụng chính hàm len để đo độ dài chuỗi, đánh dấu toàn bộ như dấu cách, kí tự,..
     )
 
-    chunks = text_splitter.split_text(text)
-
+    docs_to_split = [Document(page_content = text)] #Convert string sang object, 1 list chứa 1 document
+    chunks = text_splitter.split_documents(docs_to_split) #nhận vào list document và trả về list document
     print(f"Cắt thành công {len(chunks)} chunks.")
 
     return chunks
