@@ -1,13 +1,20 @@
-#Who the fuck would push API key
+# Who the fuck would push API key
 .env
 
-#Virtual environment
+# Virtual environment
 .venv/
-#API_test
+
+# API test
 .test/
-#VS cache
+
+# VS cache
 .vscode/
+
+# Logs
 *.log
+
+# Chroma DB
+chroma_db/
 *.txt
 
 #chroma database
