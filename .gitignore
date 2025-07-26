@@ -10,5 +10,5 @@
 *.log
 *.txt
 
-#chroma
+#chroma database
 chroma_db/
