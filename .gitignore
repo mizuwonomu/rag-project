@@ -11,4 +11,4 @@
 *.txt
 
 #chroma
-.chroma_db/
+chroma_db/
