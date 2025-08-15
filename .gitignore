@@ -16,8 +16,6 @@
 # Chroma DB
 chroma_db/
 *.txt
-
-#chroma database
-chroma_db/
-
 !requirements.txt
+
+__pycache__/
