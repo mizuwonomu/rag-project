@@ -48,7 +48,7 @@ def chunking_doc(text, file_path = None, additional_metadata= None, chunk_size =
     for i,chunk in enumerate(chunks):
         chunk.metadata.update({
             "chunk_id": i, 
-            "chunk_index": f"{(i+1)/len(chunks)}", #chỉ định vị trí index thứ mấy trong tổng chunk, ví dụ như chunk 3/8
+            "chunk_index": f"{i+1}/{len(chunks)}", #chỉ định vị trí index thứ mấy trong tổng chunk, ví dụ như chunk 3/8
             "chunk_size": len(chunk.page_content), #độ dài thực tế của chunk 
             "chunk_start_char": i * max(0,chunk_size - chunk_overlap) #"highlight" đúng đoạn văn bản gốc trên giao diện khi trích dẫn nguồn
         })
