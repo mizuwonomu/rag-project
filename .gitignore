@@ -1,21 +1,13 @@
-# Who the fuck would push API key
 .env
-
 # Virtual environment
 .venv/
-
-# API test
-.test/
-
 # VS cache
 .vscode/
-
 # Logs
 *.log
-
 # Chroma DB
 chroma_db/
 *.txt
 !requirements.txt
-
 __pycache__/
+.cursor/
