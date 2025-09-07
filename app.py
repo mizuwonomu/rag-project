@@ -1,3 +1,9 @@
+import asyncio
+try:
+    asyncio.get_event_loop() #Check if event loop already exists
+except RuntimeError: #phòng trường hợp event tạo ở 1 main thread khác
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 import streamlit as st
 from src.qa_chain import get_chain
 
