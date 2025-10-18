@@ -11,3 +11,6 @@ chroma_db/
 !requirements.txt
 __pycache__/
 .cursor/
+
+#setup uv files
+.python-version
