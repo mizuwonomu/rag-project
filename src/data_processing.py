@@ -17,7 +17,7 @@ def doc_cleaning(file_path):
     cleaned_text = soup.get_text()
 
     #Cleaning lần cuối
-    cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text).strip()
+    cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text).strip() #strip xóa luôn cả \n ở cuối string
     #bất cứ đoạn nào có nhiều hơn enter 3 lần liên tiếp, sẽ chuyển về định dạng ngắt dòng chuẩn là \n\n
     return cleaned_text
 
@@ -42,8 +42,55 @@ def chunking_doc(text, file_path = None, additional_metadata= None, chunk_size =
     if additional_metadata:
         base_metadata.update(additional_metadata) #nếu như có bất cứ thông tin định dạng nào cho vào, update thêm
 
-    docs_to_split = [Document(page_content = text, metadata = base_metadata)] #Convert string sang object, 1 list chứa 1 document
-    chunks = text_splitter.split_documents(docs_to_split) #nhận vào list document và trả về list document
+    parts = re.split(r'(?=\n## II\.|\n## III\.|\n## IV\.)', text)
+
+    #?=: Regex chỉ định nội dung trước đó, thay vì cắt tại chính nội dung mang nội dung trên, regex sẽ tự động cắt kí tự "ngay trước" nội dung chỉ định
+    #Ví dụ: Nội dung A,B,C \n II. Phân tích tâm lí -> Cắt ra thành 2 list section, 1 là  [A,b,c] 2 là [II. Phân tích tâm lí] thay vì cắt luôn nội dung "II."
+    
+    #\n: Vì mỗi mục đều luôn có dấu xuống dòng trước section đó
+    #\. để chỉ định đây là dấu chấm, không phải kí tự đặc biệt
+    #|: Toán tử or
+
+    docs_to_split = []
+    
+    for part in parts:
+        if not part.strip():
+            continue
+
+        part_striped = part.strip()
+        section_name = "Unknown"
+        if (part_striped.startswith("## I. DIỄN BIẾN")): #update: no more \n regex, do strip đã xóa 
+            section_name = "Diễn biến"
+
+        elif (part_striped.startswith("## II. PHÂN TÍCH TÂM LÝ")):
+            section_name = "Phân tích tâm lý"
+
+        elif (part_striped.startswith("## III. Ý NGHĨA")):
+            section_name = "Ý nghĩa"
+
+        elif (part_striped.startswith("## IV. KẾT LUẬN")):
+            section_name = "Kết luận"
+
+        section_metadata = base_metadata.copy()
+        section_metadata.update({
+            "section": section_name
+        }
+        )
+
+        #Tạo 1 document riêng cho mỗi phần nội dung section. 
+        #Khi này, sẽ thành 4 document có list 4 phần section nội dung riêng
+        doc = Document(page_content= part, metadata = section_metadata)
+        docs_to_split.append(doc)
+
+        #Khi này, docs_to_split đang có 4 list riêng
+            #docs_to_split = [
+            #Document(page_content = "Nội dung diễn biến...", metadata = "Diễn biến")
+            #Document(page_content = "Nội dung phân tích...", metadata = "Phân tích")
+            #.... Tiếp tục 
+
+    chunks = text_splitter.split_documents(docs_to_split) 
+    #khi này, text splitter sẽ nhận biết từng section để cắt cho đến cuối dãy, hay hết 1 content section
+
     
     for i,chunk in enumerate(chunks):
         chunk.metadata.update({
