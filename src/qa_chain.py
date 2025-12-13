@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 load_dotenv()
 CHROMA_PATH = "chroma_db"
 
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
 def get_chain(k, temperature):
     embedding_model = GoogleGenerativeAIEmbeddings(model = "models/gemini-embedding-001")
     #load vector store
@@ -56,10 +60,9 @@ def get_chain(k, temperature):
     def retrieve_with_filter(question: str):
         dynamic_filter = classifier(question)
         retriever = vector_store.as_retriever(
-        search_type = "mmr", #Dùng maximal marginal relevance
+        search_type = "similarity", #Dùng maximal marginal relevance
         search_kwargs = {
             'k': k, 
-            'fetch_k': 20,
             'filter': dynamic_filter
             }
         )
@@ -87,9 +90,15 @@ def get_chain(k, temperature):
             #chuyển đổi object retreive thành 1 Runnable
             #để có thể delay cho đến khi được invoke đúng thời điểm, thay vì chạy ngay tức khắc
             question = RunnablePassthrough(),
-    ).assign(
-        #answer được chạy qua 1 chain con
-        answer = answer_chain
-    )
+        ).assign( #Lấy context là danh sách các chunk gốc và question
 
+            answer = (
+                RunnableLambda(lambda x: {
+                    "context": format_docs(x["context"]),
+                    "question": x["question"]
+                }) #ép danh sách chunk thành string
+                | answer_chain
+            )
+            #Đảm bảo app.py nhận 1 cục dictionary đầy đủ
+        )
     return rag_chain
