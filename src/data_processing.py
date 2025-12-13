@@ -7,19 +7,7 @@ def doc_cleaning(file_path):
     print(f"Đang đọc file {file_path}, bình tĩnh")
     with open(file_path, "r", encoding= "utf-8") as f:
         text = f.read()
-    
-    #Convert từ markdown sang html
-    html = markdown(text)
-
-    #Lột các tag html, chỉ lấy text
-
-    soup = BeautifulSoup(html, "html.parser")
-    cleaned_text = soup.get_text()
-
-    #Cleaning lần cuối
-    cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text).strip() #strip xóa luôn cả \n ở cuối string
-    #bất cứ đoạn nào có nhiều hơn enter 3 lần liên tiếp, sẽ chuyển về định dạng ngắt dòng chuẩn là \n\n
-    return cleaned_text
+    return text
 
 def chunking_doc(text, file_path = None, additional_metadata= None, chunk_size = 500, chunk_overlap = 50):
     text_splitter = RecursiveCharacterTextSplitter(
@@ -42,7 +30,7 @@ def chunking_doc(text, file_path = None, additional_metadata= None, chunk_size =
     if additional_metadata:
         base_metadata.update(additional_metadata) #nếu như có bất cứ thông tin định dạng nào cho vào, update thêm
 
-    parts = re.split(r'(?=\n## II\.|\n## III\.|\n## IV\.)', text)
+    parts = re.split(r'(?=\n## [IVX]+\.)', text)
 
     #?=: Regex chỉ định nội dung trước đó, thay vì cắt tại chính nội dung mang nội dung trên, regex sẽ tự động cắt kí tự "ngay trước" nội dung chỉ định
     #Ví dụ: Nội dung A,B,C \n II. Phân tích tâm lí -> Cắt ra thành 2 list section, 1 là  [A,b,c] 2 là [II. Phân tích tâm lí] thay vì cắt luôn nội dung "II."
@@ -50,8 +38,11 @@ def chunking_doc(text, file_path = None, additional_metadata= None, chunk_size =
     #\n: Vì mỗi mục đều luôn có dấu xuống dòng trước section đó
     #\. để chỉ định đây là dấu chấm, không phải kí tự đặc biệt
     #|: Toán tử or
-
-    docs_to_split = []
+    #[]: Character set: Chỉ định rằng kí tự tiếp theo phải là MỘT
+    #trong các kí tự nằm bên trong dấu ngoặc vuông
+    #IVX: Các kí tự được phép: Chỉ các chữ cái I, V hoặc X (1,5,10)
+    #+: Bộ định lượng, chỉ định rằng kí tự đứng trước nó phải xuất hiện 1 lần trở lên
+    #Ví dụ: I,II, III (1,2,3 lần kí tự I)
     
     for part in parts:
         if not part.strip():
@@ -71,6 +62,13 @@ def chunking_doc(text, file_path = None, additional_metadata= None, chunk_size =
         elif (part_striped.startswith("## IV. KẾT LUẬN")):
             section_name = "Kết luận"
 
+
+        html = markdown(part)
+        soup = BeautifulSoup(html, "html.parser")
+        cleaned_text = soup.get_text()
+        cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text).strip()
+
+
         section_metadata = base_metadata.copy()
         section_metadata.update({
             "section": section_name
@@ -79,7 +77,7 @@ def chunking_doc(text, file_path = None, additional_metadata= None, chunk_size =
 
         #Tạo 1 document riêng cho mỗi phần nội dung section. 
         #Khi này, sẽ thành 4 document có list 4 phần section nội dung riêng
-        doc = Document(page_content= part, metadata = section_metadata)
+        doc = Document(page_content= cleaned_text, metadata = section_metadata)
         docs_to_split.append(doc)
 
         #Khi này, docs_to_split đang có 4 list riêng
