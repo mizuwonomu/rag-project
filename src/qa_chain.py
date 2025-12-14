@@ -2,6 +2,8 @@ import os
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativeAI
 from langchain_chroma import Chroma
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import EnsembleRetriever
 from langchain.schema.runnable import RunnablePassthrough #chạy nhiều nhánh xử lý cùng 1 lúc
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnableLambda
@@ -21,9 +23,32 @@ def get_chain(k, temperature):
         embedding_function = embedding_model,
         persist_directory = CHROMA_PATH
     )
+
+    chroma_retriever = vector_store.as_retriever(
+        search_type = "similarity",
+        search_kwargs = {'k': k}
+    )
+
+    data = vector_store.get()
+
+    from langchain_core.documents import Document
+
+    docs_for_bm25 = [
+        Document(page_content=txt, metadata=md)
+        for txt, md in zip(data['documents'], data['metadatas'])
+    ]
+    bm25_retriever = BM25Retriever.from_documents(docs_for_bm25)
+    bm25_retriever.k = k
+
+    ensemble_retriever = EnsembleRetriever(
+        retrievers = [chroma_retriever, bm25_retriever],
+        weights = [0.5, 0.5]
+    )
+
+    #test hybrid with no filter
     llm = GoogleGenerativeAI(model = "models/gemini-2.5-flash", temperature = temperature)
 
-    def classifier(question: str):
+    '''def classifier(question: str):
 
         template = """
         Câu hỏi của người dùng là: {question}
@@ -55,7 +80,7 @@ def get_chain(k, temperature):
 
         else:
             return {} #Seciton rỗng, aka không thuộc section nào
-
+    
     #Generate retriever
     def retrieve_with_filter(question: str):
         dynamic_filter = classifier(question)
@@ -67,7 +92,12 @@ def get_chain(k, temperature):
             }
         )
         return retriever.invoke(question)
+    '''
 
+    def retrieve_hybrid(question: str):
+
+        return ensemble_retriever.invoke(question)
+    
     #define template và prompt
     template = """
     Dựa vào những thông tin dưới đây để trả lời câu hỏi. Nếu không thể tìm thấy câu trả lời cho câu hỏi, hãy trả lời 'Tôi không thể tìm thấy
@@ -86,7 +116,7 @@ def get_chain(k, temperature):
         | StrOutputParser()
     )
     rag_chain=RunnableParallel(
-            context = RunnableLambda(retrieve_with_filter),
+            context = RunnableLambda(retrieve_hybrid),
             #chuyển đổi object retreive thành 1 Runnable
             #để có thể delay cho đến khi được invoke đúng thời điểm, thay vì chạy ngay tức khắc
             question = RunnablePassthrough(),
