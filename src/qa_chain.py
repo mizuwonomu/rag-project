@@ -93,7 +93,7 @@ def get_chain(k, temperature):
         ).assign( #Lấy context là danh sách các chunk gốc và question
 
             answer = (
-                RunnableLambda(lambda x: {
+                RunnableLambda(lambda x: { #x: chứa dictionary của output runnableparallel 
                     "context": format_docs(x["context"]),
                     "question": x["question"]
                 }) #ép danh sách chunk thành string
