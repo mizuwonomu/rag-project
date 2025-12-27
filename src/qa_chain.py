@@ -1,5 +1,9 @@
 import os
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import SystemMessage
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativeAI
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
@@ -7,13 +11,22 @@ from langchain.retrievers import EnsembleRetriever
 from langchain.schema.runnable import RunnablePassthrough #chạy nhiều nhánh xử lý cùng 1 lúc
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnableLambda
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 load_dotenv()
+
+
 CHROMA_PATH = "chroma_db"
 
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
+
+store = {}
+def get_session_history(session_id : str) -> BaseChatMessageHistory:
+    if session_id not in store:
+        store[session_id] = ChatMessageHistory()
+    
+    return store[session_id]
 
 
 def get_chain(k, temperature):
@@ -46,7 +59,7 @@ def get_chain(k, temperature):
     )
 
     #test hybrid with no filter
-    llm = GoogleGenerativeAI(model = "models/gemini-2.5-flash", temperature = temperature)
+    llm = GoogleGenerativeAI(model = "models/gemini-3-flash-preview", temperature = temperature)
 
     '''def classifier(question: str):
 
@@ -94,41 +107,85 @@ def get_chain(k, temperature):
         return retriever.invoke(question)
     '''
 
-    def retrieve_hybrid(question: str):
+    def retrieve_hybrid(input_data):
+        question = input_data["standalone_question"]
 
-        return ensemble_retriever.invoke(question)
-    
-    #define template và prompt
-    template = """
-    Dựa vào những thông tin dưới đây để trả lời câu hỏi. Nếu không thể tìm thấy câu trả lời cho câu hỏi, hãy trả lời 'Tôi không thể tìm thấy
-    câu trả lời cho câu hỏi trên'. Tuyệt đối không được bịa câu trả lời.
-    Context:
-    {context}
-    Question:
-    {question}
+        docs = ensemble_retriever.invoke(question)
 
-    Answer:
+        return docs[:k]
+
+    rephrase_system_prompt = """Given a chat history and the lastest user quesion
+    which might reference context in the chat history, formulate a standalone question which can be
+    understood without the chat history. Do NOT answer the question, just reformulate it if needed 
+    and otherwise return it as is.
     """
-    prompt = ChatPromptTemplate.from_template(template)
+
+    rephrase_prompt = ChatPromptTemplate.from_messages([
+        ("system", rephrase_system_prompt),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{question}")
+    ])
+
+    #chain nhỏ chỉ làm nhiệm vụ: Input (History + Query) -> Output (String query mới)
+
+    rephrase_chain = rephrase_prompt | llm | StrOutputParser()
+    #define prompt with role-based messages
+
+    qa_prompt = ChatPromptTemplate.from_messages([
+
+        ("system", """M là trợ lý AI chuyên về trả lời nội dung cho phim Interstellar - bộ phim khoa học viễn tưởng về vũ trụ.
+        Dựa vào context dưới đây để trả lời. Nếu không biết, hãy trả lời 'T không có câu trả lời cho câu hỏi trên'.
+        
+        Context:
+        {context}
+        """),
+
+        MessagesPlaceholder(variable_name="chat_history"),
+
+        ("human", "{question}"),
+    ])
+    
     answer_chain = (
-        prompt
+        qa_prompt
         | llm
         | StrOutputParser()
     )
     rag_chain=RunnableParallel(
-            context = RunnableLambda(retrieve_hybrid),
-            #chuyển đổi object retreive thành 1 Runnable
-            #để có thể delay cho đến khi được invoke đúng thời điểm, thay vì chạy ngay tức khắc
-            question = RunnablePassthrough(),
-        ).assign( #Lấy context là danh sách các chunk gốc và question
+        #Nhánh 1: tính toán câu hỏi độc lập
 
-            answer = (
-                RunnableLambda(lambda x: { #x: chứa dictionary của output runnableparallel 
-                    "context": format_docs(x["context"]),
-                    "question": x["question"]
-                }) #ép danh sách chunk thành string
-                | answer_chain
-            )
-            #Đảm bảo app.py nhận 1 cục dictionary đầy đủ
+        input_pass = RunnablePassthrough(), #giữ input gốc để lấy chat_history
+        #passthrough truyền nguyên 1 dict {'question', 'chat_history}
+
+        standalone_question = rephrase_chain, #dùng llm để viết lại câu hỏi
+
+    ).assign(
+        #nhánh 2: dùng câu hỏi độc lập để tìm tài liệu (context)
+
+        context = RunnableLambda(retrieve_hybrid)
+    
+        #x lúc này đã có key 'standalone_question'
+        #lambda để chuyển đổi object retreive thành 1 Runnable
+        #để có thể delay cho đến khi được invoke đúng thời điểm, thay vì chạy ngay tức khắc
+
+    ).assign( #Lấy context là danh sách các chunk gốc và question
+        #nhánh 3: Trả lòi
+        answer = (
+            RunnableLambda(lambda x: { #x: chứa dictionary của output runnableparallel 
+                "context": format_docs(x["context"]),
+                "question": x["input_pass"]["question"],
+                "chat_history": x["input_pass"]["chat_history"]
+            }) #ép danh sách chunk thành string
+            | answer_chain
         )
-    return rag_chain
+        #Đảm bảo app.py nhận 1 cục dictionary đầy đủ
+    )
+
+    chain_with_history = RunnableWithMessageHistory(
+        rag_chain,
+        get_session_history,
+        input_messages_key= "question",
+        history_messages_key= "chat_history",
+        output_messages_key= "answer",
+    )
+    
+    return chain_with_history
