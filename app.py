@@ -39,7 +39,12 @@ question = st.text_input("Nhập câu hỏi của m đi con")
 
 if question:
     with st.spinner("Đang nghĩ..."):
-        response = rag_chain.invoke(question)
+        session_id = "user_vjp_pro_1"
+
+        response = rag_chain.invoke(
+            {"question": question},
+            config={"configurable": {"session_id": session_id}}
+        )
         answer = response['answer']
         source_documents = response['context']
 
