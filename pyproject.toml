@@ -57,6 +57,7 @@ dependencies = [
     "langchain-community>=0.3.30",
     "langchain-core==0.3.75",
     "langchain-google-genai==2.1.10",
+    "langchain-groq>=0.3.8",
     "langchain-text-splitters==0.3.11",
     "langsmith==0.4.21",
     "markdown==3.8.2",

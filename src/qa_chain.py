@@ -4,7 +4,8 @@ from langchain_core.messages import SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativeAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_groq import ChatGroq
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
@@ -59,7 +60,11 @@ def get_chain(k, temperature):
     )
 
     #test hybrid with no filter
-    llm = GoogleGenerativeAI(model = "models/gemini-3-flash-preview", temperature = temperature)
+    llm = ChatGroq(
+        model = "qwen/qwen3-32b",
+        temperature = temperature,
+        reasoning_format = "parsed"
+    )
 
     '''def classifier(question: str):
 
@@ -133,8 +138,13 @@ def get_chain(k, temperature):
 
     qa_prompt = ChatPromptTemplate.from_messages([
 
-        ("system", """M là trợ lý AI chuyên về trả lời nội dung cho phim Interstellar - bộ phim khoa học viễn tưởng về vũ trụ.
-        Dựa vào context dưới đây để trả lời. Nếu không biết, hãy trả lời 'T không có câu trả lời cho câu hỏi trên'.
+        ("system", """M là trợ lý AI chuyên về trả lời câu hỏi dựa trên tài liệu được cung cấp.
+        
+        Quy tắc tuyệt đối (絶対ルール):
+        1. CHỈ được sử dụng thông tin có trong phần Context bên dưới.
+        2. KHÔNG được sử dụng kiến thức bên ngoài (Outside knowledge) hoặc kiến thức có sẵn trong model (Pre-trained knowledge) để trả lời.
+        3. Nếu thông tin không có trong Context, hãy trả lời: "Thông tin này không có trong tài liệu."
+        4. KHÔNG được bịa đặt nội dung (Hallucination). 
         
         Context:
         {context}
