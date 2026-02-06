@@ -132,10 +132,44 @@ def get_chain(k, temperature):
     ])
 
     #chain nhỏ chỉ làm nhiệm vụ: Input (History + Query) -> Output (String query mới)
-
     rephrase_chain = rephrase_prompt | llm | StrOutputParser()
-    #define prompt with role-based messages
 
+    #Phân loại câu hỏi thuộc rag hay xã giao
+    router_template = """
+    M là một chuyên gia phân loại câu hỏi. Hãy đọc câu hỏi của người dùng và quyết định câu hỏi đó thuộc loại nào"
+
+    1. 'chat': Các câu chào hỏi xã giao, hỏi thăm sức khỏe, không liên quan đến thông tin cụ thể trong tài liệu (VD: Chào bạn, bạn tên gì?, ...)
+    2. 'RAG': Các câu hỏi yêu cầu thông tin, kiến thức cụ thể trong tài liệu liên quan đến phim (VD: TARS là ai, cốt truyện chính trong phim,..)
+
+    Chỉ được trả kết quả theo 1 từ duy nhất: 'chat' hoặc 'RAG'. KHÔNG trả lời thêm bất cứ điều gì khác.
+
+    Câu hỏi: {question}
+    Phân loại:
+    """
+
+
+    router_prompt = ChatPromptTemplate.from_template(router_template)
+
+    router_chain = router_prompt | llm | StrOutputParser()
+    
+    #Nhánh A: Chat thông thường(dùng cách xã giao của model)
+    chat_prompt = ChatPromptTemplate.from_messages([
+        ("system", "M là một trợ lý AI vui tính. Hãy trò chuyện thân thiện với người dùng. Gọi user là 'mày', bản thân là 'tao', có thể viết tắt thành 't' và 'm'."),
+
+        MessagesPlaceholder(variable_name="chat_history"),
+        
+        ("human", "{question}"),
+    ])
+    
+    #Chuẩn hóa output format giống rag chain, trả về dạng 辞書型
+    chat_chain = (
+        chat_prompt 
+        | llm 
+        | StrOutputParser()
+        | RunnableLambda(lambda x: {"answer": x, "context": []}) #fake content rỗng
+    )
+
+    #define prompt with role-based messages, only rely on documents
     qa_prompt = ChatPromptTemplate.from_messages([
 
         ("system", """M là trợ lý AI chuyên về trả lời câu hỏi dựa trên tài liệu được cung cấp.
@@ -190,8 +224,26 @@ def get_chain(k, temperature):
         #Đảm bảo app.py nhận 1 cục dictionary đầy đủ
     )
 
+
+    def route_decision(info):
+        #info: Dict chứa đầu ra của các bước trước
+
+        #router_chain cần input là dict {'question':...}
+        decision = router_chain.invoke({"question": info["question"]})
+
+        #clean string (xóa khoảng trắng thừa nếu có)
+        decision = decision.strip().lower()
+
+        if "chat" in decision:
+            return chat_chain
+        else:
+            return rag_chain
+    
+    # Tổng hợp final chain
+    full_chain = RunnableLambda(route_decision)
+
     chain_with_history = RunnableWithMessageHistory(
-        rag_chain,
+        full_chain,
         get_session_history,
         input_messages_key= "question",
         history_messages_key= "chat_history",
