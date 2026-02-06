@@ -5,7 +5,7 @@ except RuntimeError: #phòng trường hợp event tạo ở 1 main thread khác
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 import streamlit as st
-from src.qa_chain import get_chain
+from src.qa_chain import get_chain, debug_memory
 
 st.title("🤖 Hỏi đáp Interstellar")
 #sidebar điều chỉnh kawrgs, temp
@@ -26,6 +26,20 @@ with st.sidebar:
         value = 0.4,
         step = 0.1,
     )
+
+    st.info("Đây là những gì bot đang nhớ hiện tại")
+
+    current_session_id = "user_vjp_pro_1"
+
+    memory_content = debug_memory(current_session_id)
+    st.json(memory_content)
+
+    if st.button("🗑️ Xóa Trí Nhớ (Clear RAM)"):
+        from src.qa_chain import store
+        if current_session_id in store:
+            del store[current_session_id]
+            st.rerun()
+    
 
 k_value = k_slider
 temperature_value = temperature_slider

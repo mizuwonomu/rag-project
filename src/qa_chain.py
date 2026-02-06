@@ -189,3 +189,20 @@ def get_chain(k, temperature):
     )
     
     return chain_with_history
+
+def debug_memory(session_id):
+
+    if session_id not in store:
+        return ["Chưa có lịch sử chat nào trong RAM này!"]
+
+    history_obj = store[session_id]
+
+    readable_history = []
+
+    for msg in history_obj.messages:
+        readable_history.append({
+            "Role": msg.type.upper(), #msg type could be ai or human role
+            "Content": msg.content 
+        })
+
+    return readable_history
