@@ -15,3 +15,6 @@ __pycache__/
 
 #setup uv files
 .python-version
+
+#data-files(pdf,..)
+*.pdf
