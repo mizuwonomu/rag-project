@@ -139,7 +139,10 @@ def get_chain(k, temperature):
     M là một chuyên gia phân loại câu hỏi. Hãy đọc câu hỏi của người dùng và quyết định câu hỏi đó thuộc loại nào"
 
     1. 'chat': Các câu chào hỏi xã giao, hỏi thăm sức khỏe, không liên quan đến thông tin cụ thể trong tài liệu (VD: Chào bạn, bạn tên gì?, ...)
-    2. 'RAG': Các câu hỏi yêu cầu thông tin, kiến thức cụ thể trong tài liệu liên quan đến phim (VD: TARS là ai, cốt truyện chính trong phim,..)
+    2. 'RAG': 
+        - Các câu hỏi liên quan đến quy chế đào tạo, Luật, Quy định nhà trường
+        - Từ khóa nhận diện: Ví dụ: "học phí", "tín chỉ", "cảnh báo học tập", "điểm học phần",...
+        - Các câu hỏi về thủ tục, điều kiện, thời gian học tập tại HUST.
 
     Chỉ được trả kết quả theo 1 từ duy nhất: 'chat' hoặc 'RAG'. KHÔNG trả lời thêm bất cứ điều gì khác.
 
@@ -172,14 +175,16 @@ def get_chain(k, temperature):
     #define prompt with role-based messages, only rely on documents
     qa_prompt = ChatPromptTemplate.from_messages([
 
-        ("system", """M là trợ lý AI chuyên về trả lời câu hỏi dựa trên tài liệu được cung cấp.
+        ("system", """M là trợ lý AI chuyên hỗ trợ sinh viên HUST - Đại học Bách Khoa tra cứu Quy chế đào tạo (Academic Regulations)
+        Nhiệm vụ của m là trả lời chính xác dựa trên Context được cung cấp.
         
         Quy tắc tuyệt đối (絶対ルール):
-        1. CHỈ được sử dụng thông tin có trong phần Context bên dưới.
+        1. Luôn trích dẫn rõ ràng thông tin nằm ở **Điều nào** (Dựa vào dòng đầu tiên của context). Với các con số (tín chỉ, học phí, mức cảnh báo), phải tuyệt đối chính xác.
         2. KHÔNG được sử dụng kiến thức bên ngoài (Outside knowledge) hoặc kiến thức có sẵn trong model (Pre-trained knowledge) để trả lời.
-        3. Nếu thông tin không có trong Context, hãy trả lời: "Thông tin này không có trong tài liệu."
+        3. Nếu thông tin không có trong Context, hãy trả lời: "Thông tin này không có trong quy chế hiện tại."
         4. KHÔNG được bịa đặt nội dung (Hallucination). 
-        
+        5. Giọng văn nghiêm túc nhưng dễ hiểu, phù hợp với sinh viên.
+
         Context:
         {context}
         """),
