@@ -26,7 +26,7 @@ with st.sidebar:
         "Temperature:",
         min_value = 0.0,
         max_value = 1.0,
-        value = 0.4,
+        value = 0.1,
         step = 0.1,
     )
 
@@ -76,12 +76,26 @@ def load_chain(k,temperature):
 rag_chain = load_chain(k = k_value, temperature = temperature_value)
 question = st.text_input("Nhập câu hỏi của m đi con")
 
+
+#Tach rieng 2 initialization: 
+#1. Khoi tao list chua lich su chat hien thi tren UI
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+#2. Day moi la list chua context cua cau hoi cuoi cung (LLM memory)
 if "last_context" not in st.session_state:
     st.session_state.last_context = []
 
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+
 if question:
     with st.chat_message("user"):
-        st.write(question)
+        st.markdown(question)
+
+    st.session_state.messages.append({"role": "user", "content": question})
 
     with st.chat_message("ai"):
 
@@ -103,4 +117,7 @@ if question:
                     #highlight important keyword
                     st.markdown(f"**Nội dung**")
                     st.info(doc.page_content)
-                    st.caption(f"Metadata: {doc.metadata}")
+                    st.json(f"Metadata: {doc.metadata}")
+
+    #luu cau tra loi cua AI vao history de hien thi
+    st.session_state.messages.append({"role": "ai", "content": full_response})
