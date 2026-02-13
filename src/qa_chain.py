@@ -1,10 +1,15 @@
 import os
+import sys
+import glob
+sys.path.append(os.path.abspath('.'))
+import pickle
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain.storage import LocalFileStore, EncoderBackedStore
+from src.utils import get_embedding_model
 from langchain_groq import ChatGroq
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
@@ -12,12 +17,14 @@ from langchain.retrievers import EnsembleRetriever
 from langchain.schema.runnable import RunnablePassthrough #chạy nhiều nhánh xử lý cùng 1 lúc
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnableLambda
+from langsmith import traceable
 
 from dotenv import load_dotenv
 load_dotenv()
 
 
 CHROMA_PATH = "chroma_db"
+DOC_STORE_PATH = "doc_store_pdr"
 
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
@@ -30,32 +37,43 @@ def get_session_history(session_id : str) -> BaseChatMessageHistory:
     return store[session_id]
 
 
+@traceable(run_type='chain')
 def get_chain(k, temperature):
-    embedding_model = GoogleGenerativeAIEmbeddings(model = "models/gemini-embedding-001")
+    embedding_model = get_embedding_model()
     #load vector store
     vector_store = Chroma(
+        collection_name= "split_parents",
         embedding_function = embedding_model,
         persist_directory = CHROMA_PATH
     )
 
-    chroma_retriever = vector_store.as_retriever(
+    fs = LocalFileStore(DOC_STORE_PATH)
+    doc_store = EncoderBackedStore(
+        store=fs,
+        key_encoder=lambda x: x,
+        value_serializer=pickle.dumps,
+        value_deserializer=pickle.loads
+    )
+
+    child_vector_retriever = vector_store.as_retriever(
         search_type = "similarity",
         search_kwargs = {'k': k}
     )
 
-    data = vector_store.get()
+    child_data = vector_store.get()
 
     from langchain_core.documents import Document
 
-    docs_for_bm25 = [
+    all_child_docs = [
         Document(page_content=txt, metadata=md)
-        for txt, md in zip(data['documents'], data['metadatas'])
+        for txt, md in zip(child_data['documents'], child_data['metadatas'])
     ]
-    bm25_retriever = BM25Retriever.from_documents(docs_for_bm25)
+
+    bm25_retriever = BM25Retriever.from_documents(all_child_docs)
     bm25_retriever.k = k
 
     ensemble_retriever = EnsembleRetriever(
-        retrievers = [chroma_retriever, bm25_retriever],
+        retrievers = [child_vector_retriever, bm25_retriever],
         weights = [0.5, 0.5]
     )
 
@@ -111,13 +129,26 @@ def get_chain(k, temperature):
         )
         return retriever.invoke(question)
     '''
-
-    def retrieve_hybrid(input_data):
+    #Custom chain de lay parent:
+    #Query -> Ensemble -> List[child] ->extract ids -> docstore -> list[parent]
+    def retreive_parents(input_data):
+        #find child
         question = input_data["standalone_question"]
 
-        docs = ensemble_retriever.invoke(question)
+        top_child_docs = ensemble_retriever.invoke(question)
 
-        return docs[:k]
+        #find parent id (filter collision)
+        parent_ids = list(set([doc.metadata.get("doc_id") for doc in top_child_docs]))
+
+        #find parent by bytes (via pickles.loads)
+        if not parent_ids:
+            return []
+
+        parent_docs = doc_store.mget(parent_ids)
+
+        valid_docs = [p for p in parent_docs if p is not None]
+
+        return valid_docs[:k]
 
     rephrase_system_prompt = """Given a chat history and the lastest user quesion
     which might reference context in the chat history, formulate a standalone question which can be
@@ -210,7 +241,7 @@ def get_chain(k, temperature):
     ).assign(
         #nhánh 2: dùng câu hỏi độc lập để tìm tài liệu (context)
 
-        context = RunnableLambda(retrieve_hybrid)
+        context = RunnableLambda(retreive_parents)
     
         #x lúc này đã có key 'standalone_question'
         #lambda để chuyển đổi object retreive thành 1 Runnable

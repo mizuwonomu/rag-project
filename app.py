@@ -7,7 +7,7 @@ except RuntimeError: #phòng trường hợp event tạo ở 1 main thread khác
 import streamlit as st
 from src.qa_chain import get_chain, debug_memory
 
-st.title("🤖 Hỏi đáp Interstellar")
+st.title("🤖 Hỏi đáp quy chế HUST")
 #sidebar điều chỉnh kawrgs, temp
 with st.sidebar:
     st.header("⚙️ Tùy chỉnh tham số")
