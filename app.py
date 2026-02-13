@@ -6,6 +6,9 @@ except RuntimeError: #phòng trường hợp event tạo ở 1 main thread khác
     asyncio.set_event_loop(loop)
 import streamlit as st
 from src.qa_chain import get_chain, debug_memory
+from src.utils import get_embedding_model
+
+embedding_model = get_embedding_model()
 
 st.title("🤖 Hỏi đáp quy chế HUST")
 #sidebar điều chỉnh kawrgs, temp
@@ -68,7 +71,7 @@ def stream_handler(chain, question, session_id):
 
 def load_chain(k,temperature):
     st.write(f"--Đang trả về chain với k ={k} và temperature = {temperature}")
-    return get_chain(k = k, temperature = temperature)
+    return get_chain(k = k, temperature = temperature, embedding_model = embedding_model)
 
 rag_chain = load_chain(k = k_value, temperature = temperature_value)
 question = st.text_input("Nhập câu hỏi của m đi con")
@@ -90,8 +93,3 @@ if question:
         if st.session_state.last_context:
             with st.expander("📚 Nguồn tài liệu (Context)"):
                 st.write(st.session_state.last_context)
-
-
-
-
-        

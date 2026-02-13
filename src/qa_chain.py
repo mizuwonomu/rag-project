@@ -9,7 +9,6 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.storage import LocalFileStore, EncoderBackedStore
-from src.utils import get_embedding_model
 from langchain_groq import ChatGroq
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
@@ -38,8 +37,8 @@ def get_session_history(session_id : str) -> BaseChatMessageHistory:
 
 
 @traceable(run_type='chain')
-def get_chain(k, temperature):
-    embedding_model = get_embedding_model()
+def get_chain(k, temperature, embedding_model):
+    embedding_model = embedding_model
     #load vector store
     vector_store = Chroma(
         collection_name= "split_parents",
