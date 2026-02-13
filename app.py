@@ -91,5 +91,16 @@ if question:
         full_response = st.write_stream(stream_handler(rag_chain, question, session_id))
 
         if st.session_state.last_context:
-            with st.expander("📚 Nguồn tài liệu (Context)"):
-                st.write(st.session_state.last_context)
+            st.divider() #Ke 1 duong phan cach
+            st.subheader("📚 Nguồn tài liệu tham khảo")
+
+            sources = st.session_state.last_context
+
+            for i, doc in enumerate(sources):
+                source_name = doc.metadata.get("title", f"Nguồn tài liệu #{i+1}")
+
+                with st.expander(f"📖 [{i+1}] {source_name}"):
+                    #highlight important keyword
+                    st.markdown(f"**Nội dung**")
+                    st.info(doc.page_content)
+                    st.caption(f"Metadata: {doc.metadata}")

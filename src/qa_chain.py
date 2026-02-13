@@ -26,7 +26,15 @@ CHROMA_PATH = "chroma_db"
 DOC_STORE_PATH = "doc_store_pdr"
 
 def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
+    formatted = []
+    #Van la ep string tu document object, nhung co them cac metadata de danh dau
+    
+    for i, doc in enumerate(docs):
+        source_title = doc.metadata.get("title", f"Điều khoản {i+1}")
+        content = doc.page_content.replace("\n", " ")
+        formatted.append(f"Source [{i+1}] ({source_title}):\n{content}")
+
+    return "\n\n".join(formatted)
 
 store = {}
 def get_session_history(session_id : str) -> BaseChatMessageHistory:
@@ -214,6 +222,11 @@ def get_chain(k, temperature, embedding_model):
         3. Nếu thông tin không có trong Context, hãy trả lời: "Thông tin này không có trong quy chế hiện tại."
         4. KHÔNG được bịa đặt nội dung (Hallucination). 
         5. Giọng văn nghiêm túc nhưng dễ hiểu, phù hợp với sinh viên.
+
+        Quy tắc trích dẫn (Citation Rules): 
+        1. Khi đưa ra bất kỳ thông tin nào, PHẢI trích dẫn nguồn gốc bằng cú pháp [index]. Ví dụ: "Theo quy định về học phí [1], sinh viên phải..." 
+        2. Nếu thông tin đến từ nhiều nguồn, hãy liệt kê đủ: [1], [3]. 
+        3. Cuối câu trả lời KHÔNG cần tạo danh sách tài liệu tham khảo (vì giao diện sẽ tự hiển thị).   
 
         Context:
         {context}
