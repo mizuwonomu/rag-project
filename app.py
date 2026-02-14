@@ -10,7 +10,6 @@ from src.utils import get_embedding_model
 
 embedding_model = get_embedding_model()
 
-st.title("🤖 Hỏi đáp quy chế HUST")
 #sidebar điều chỉnh kawrgs, temp
 with st.sidebar:
     st.header("⚙️ Tùy chỉnh tham số")
@@ -70,12 +69,9 @@ def stream_handler(chain, question, session_id):
 
 
 def load_chain(k,temperature):
-    st.write(f"--Đang trả về chain với k ={k} và temperature = {temperature}")
     return get_chain(k = k, temperature = temperature, embedding_model = embedding_model)
 
 rag_chain = load_chain(k = k_value, temperature = temperature_value)
-question = st.text_input("Nhập câu hỏi của m đi con")
-
 
 #Tach rieng 2 initialization: 
 #1. Khoi tao list chua lich su chat hien thi tren UI
@@ -91,7 +87,7 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 
-if question:
+def handle_query(question):
     with st.chat_message("user"):
         st.markdown(question)
 
@@ -121,3 +117,56 @@ if question:
 
     #luu cau tra loi cua AI vao history de hien thi
     st.session_state.messages.append({"role": "ai", "content": full_response})
+
+
+#render UI
+if not st.session_state.messages:
+    #HERO SECTION: display when no messages are found
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style = "text-align: center;">
+        <h1>🤖HUST Regulations Bot </h1>
+        <p> Trợ lý AI hỗ trợ tra cứu Quy chế đào tạo ĐHBK Hà Nội. </p>
+        <p style= "color: grey; font-sizze: 0.9em;"> Dữ liệu dựa trên văn bản hợp nhất 2025.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    #Tao 2 cot cho nut goi y
+    col1, col2 = st.columns(2)
+
+
+    suggestions = [
+        "Cách tính điểm học phần",
+        "Điều kiện nhận học bổng KKHT",
+        "Quy định về nghỉ học tạm thời",
+        "Học phần song hành là gì"
+    ]
+
+    with col1:
+        if st.button(suggestions[0], use_container_width=True):
+            handle_query(suggestions[0])
+            st.rerun()
+        
+        if st.button(suggestions[2], use_container_width=True):
+            handle_query(suggestions[2])
+            st.rerun()
+
+    with col2:
+        if st.button(suggestions[1], use_container_width=True):
+            handle_query(suggestions[1])
+            st.rerun()
+        
+        if st.button(suggestions[3], use_container_width=True):
+            handle_query(suggestions[3])
+            st.rerun()
+
+
+
+#Chat input UI
+#placeholder bang tieng viet
+if prompt := st.chat_input("Nhập câu hỏi về quy chế, hoặc chat chit..."):
+    handle_query(prompt)
