@@ -74,18 +74,10 @@ def load_chain(k,temperature):
 rag_chain = load_chain(k = k_value, temperature = temperature_value)
 
 #Tach rieng 2 initialization: 
-#1. Khoi tao list chua lich su chat hien thi tren UI
-if "messages" not in st.session_state:
-    st.session_state.messages = []
 
-#2. Day moi la list chua context cua cau hoi cuoi cung (LLM memory)
+#2 - Day moi la list chua context cua cau hoi cuoi cung (LLM memory)
 if "last_context" not in st.session_state:
     st.session_state.last_context = []
-
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
 
 def handle_query(question):
     with st.chat_message("user"):
@@ -100,12 +92,10 @@ def handle_query(question):
         #dùng st.write_stream để nhận generator 'yield' ở trên
         full_response = st.write_stream(stream_handler(rag_chain, question, session_id))
 
-        if st.session_state.last_context:
+        sources = st.session_state.get("last_context", [])
+        if sources:
             st.divider() #Ke 1 duong phan cach
             st.subheader("📚 Nguồn tài liệu tham khảo")
-
-            sources = st.session_state.last_context
-
             for i, doc in enumerate(sources):
                 source_name = doc.metadata.get("title", f"Nguồn tài liệu #{i+1}")
 
@@ -113,10 +103,32 @@ def handle_query(question):
                     #highlight important keyword
                     st.markdown(f"**Nội dung**")
                     st.info(doc.page_content)
-                    st.json(f"Metadata: {doc.metadata}")
 
     #luu cau tra loi cua AI vao history de hien thi
-    st.session_state.messages.append({"role": "ai", "content": full_response})
+    st.session_state.messages.append({
+        "role": "ai", 
+        "content": full_response,
+        "sources": sources #avoid losing sources when reload
+    })
+#Init state
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+#CHI ve 1 an duy nhat - tranh loi double display
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+        if "sources" in msg and msg["sources"]:
+            st.divider() #Ke 1 duong phan cach
+            st.subheader("📚 Nguồn tài liệu tham khảo")
+            for i, doc in enumerate(msg["sources"]):
+                source_name = doc.metadata.get("title", f"Nguồn tài liệu #{i+1}")
+
+                with st.expander(f"📖 [{i+1}] {source_name}"):
+                    #highlight important keyword
+                    st.markdown(f"**Nội dung**")
+                    st.info(doc.page_content)
 
 
 #render UI
@@ -127,9 +139,11 @@ if not st.session_state.messages:
 
     st.markdown("""
     <div style = "text-align: center;">
-        <h1>🤖HUST Regulations Bot </h1>
+        <h1>🤖 HUST Regulations Bot </h1>
         <p> Trợ lý AI hỗ trợ tra cứu Quy chế đào tạo ĐHBK Hà Nội. </p>
-        <p style= "color: grey; font-sizze: 0.9em;"> Dữ liệu dựa trên văn bản hợp nhất 2025.</p>
+        <p style= "color: grey; font-sizze: 0.9em;"> 👋 Chào mừng bạn đến với trợ lý AI! Dữ liệu dựa trên văn bản hợp nhất 2025
+        , nếu bạn có bất kì câu hỏi nào về quy chế, hoặc đơn giản là muốn nói chuyện vui vẻ, trò chuyện,
+        mình sẽ sẵn sàng hỗ trợ!</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -145,6 +159,9 @@ if not st.session_state.messages:
         "Quy định về nghỉ học tạm thời",
         "Học phần song hành là gì"
     ]
+
+    def set_prompt(text):
+        st.session_state.prompt_trigger = text
 
     with col1:
         if st.button(suggestions[0], use_container_width=True):
@@ -164,9 +181,18 @@ if not st.session_state.messages:
             handle_query(suggestions[3])
             st.rerun()
 
+#input handling
 
-
-#Chat input UI
-#placeholder bang tieng viet
-if prompt := st.chat_input("Nhập câu hỏi về quy chế, hoặc chat chit..."):
+#First - kiem tra trigger tu button (uu tien 1)
+if "prompt_trigger" in st.session_state:
+    prompt = st.session_state.prompt_trigger
+    del st.session_state.prompt_trigger
     handle_query(prompt)
+    st.rerun()
+
+
+#Roi moi kiem tra chat input UI (uu tien 2)
+#placeholder bang tieng viet
+elif prompt := st.chat_input("Nhập câu hỏi về quy chế, hoặc chat chit..."):
+    handle_query(prompt)
+    st.rerun()
