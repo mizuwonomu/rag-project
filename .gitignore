@@ -19,3 +19,6 @@ __pycache__/
 #data-files(pdf,..)
 *.pdf
 doc_store_pdr/
+
+#Log feedback
+*.csv
