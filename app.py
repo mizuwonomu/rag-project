@@ -12,35 +12,41 @@ embedding_model = get_embedding_model()
 
 #sidebar điều chỉnh kawrgs, temp
 with st.sidebar:
-    st.header("⚙️ Tùy chỉnh tham số")
+    st.header("⚙️ Cài đặt")
 
-    k_slider = st.slider(
+    st.divider()
+
+    with st.expander("🛠️ Cấu hình nâng cao (Dev Mode)"):
+        st.caption("Lưu ý: Chỉ chỉnh tham số khi chắc chắn!")
+
+        k_slider = st.slider(
         "Số lượng chunk tìm kiếm: (k):",
         min_value = 1,
         max_value = 10,
         value = 3,
         step = 1,
-    )
-    temperature_slider = st.slider(
-        "Temperature:",
-        min_value = 0.0,
-        max_value = 1.0,
-        value = 0.1,
-        step = 0.1,
-    )
+        )
+        temperature_slider = st.slider(
+            "Temperature:",
+            min_value = 0.0,
+            max_value = 1.0,
+            value = 0.1,
+            step = 0.1,
+        )
 
-    st.info("Đây là những gì bot đang nhớ hiện tại")
+        st.divider()
+        st.caption("🧠Memory Debug")
+        st.info("Đây là những gì bot đang nhớ hiện tại")
 
-    current_session_id = "user_vjp_pro_1"
+        current_session_id = "user_vjp_pro_1"
+        memory_content = debug_memory(current_session_id)
+        st.json(memory_content) 
 
-    memory_content = debug_memory(current_session_id)
-    st.json(memory_content)
-
-    if st.button("🗑️ Xóa Trí Nhớ (Clear RAM)"):
-        from src.qa_chain import store
-        if current_session_id in store:
-            del store[current_session_id]
-            st.rerun()
+        if st.button("🗑️ Xóa Trí Nhớ (Clear RAM)"):
+            from src.qa_chain import store
+            if current_session_id in store:
+                del store[current_session_id]
+                st.rerun()
     
 
 k_value = k_slider
