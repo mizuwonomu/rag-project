@@ -91,51 +91,6 @@ def get_chain(k, temperature, embedding_model):
         reasoning_format = "parsed"
     )
 
-    '''def classifier(question: str):
-
-        template = """
-        Câu hỏi của người dùng là: {question}
-        Pphân loại nó thuộc section nào dưới đây:
-
-        1. Diễn biến
-        2. Phân tích tâm lý
-        3. Ý nghĩa
-        4. Tổng kết
-        5. Không rõ
-
-        Chỉ được chọn 1 trong 5 section trên. 
-        """
-
-        prompt = template.format(question = question)
-        section = llm.invoke(prompt)
-
-        if ("Diễn biến" in section):
-            return {"section": "Diễn biến"}
-
-        elif ("Phân tích" in section):
-            return {"section": "Phân tích tâm lý"}
-        
-        elif ("Ý nghĩa" in section):
-            return {"section": "Ý nghĩa"}
-        
-        elif ("Kết luận" in section):
-            return {"section": "Kết luận"}
-
-        else:
-            return {} #Seciton rỗng, aka không thuộc section nào
-    
-    #Generate retriever
-    def retrieve_with_filter(question: str):
-        dynamic_filter = classifier(question)
-        retriever = vector_store.as_retriever(
-        search_type = "similarity", #Dùng maximal marginal relevance
-        search_kwargs = {
-            'k': k, 
-            'filter': dynamic_filter
-            }
-        )
-        return retriever.invoke(question)
-    '''
     #Custom chain de lay parent:
     #Query -> Ensemble -> List[child] ->extract ids -> docstore -> list[parent]
     def retreive_parents(input_data):

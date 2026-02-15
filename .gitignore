@@ -13,9 +13,6 @@ __pycache__/
 .cursor/
 .agent/
 
-#setup uv files
-.python-version
-
 #data-files(pdf,..)
 *.pdf
 doc_store_pdr/
