@@ -3,6 +3,8 @@
   [<a href="../README.md">🇺🇸 English</a>]
 </p>
 
+[![Watch the video](../assets/DEMO.png)](https://www.youtube.com/watch?v=2S-cWeajxHs)
+
 ## 概要
 本プロジェクトは、HUST(ハノイ工科大学)の学生が自然言語で履修規定について質問をできるよう、RAG(検索拡張生成)チャットボットを提供することを目的としています。
 

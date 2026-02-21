@@ -3,8 +3,7 @@
   [<a href="./docs/README-JP.md">🇯🇵 日本語</a>]
 </p>
 
-
-
+[![Watch the video](./assets/DEMO.png)](https://www.youtube.com/watch?v=2S-cWeajxHs)
 ## Overview
 To easily query the school's academic regulations (*Quy chế đào tạo*) in natural language, this project aims to help students at **HUST (Hanoi University of Science and Technology)** by a **Retrieval-Augmented Generation (RAG) chatbot**.
 
