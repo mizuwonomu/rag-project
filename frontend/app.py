@@ -4,6 +4,10 @@ try:
 except RuntimeError: #phòng trường hợp event tạo ở 1 main thread khác
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
+import sys
+import os
+sys.path.append(os.path.abspath('.'))
 import streamlit as st
 from src.qa_chain import get_chain, debug_memory
 from src.utils import get_embedding_model
@@ -70,7 +74,43 @@ with st.sidebar:
             if current_session_id in store:
                 del store[current_session_id]
                 st.rerun()
-    
+
+#New chat button to reset conversation, return to home section
+st.markdown("""
+    <style>
+    /* Strategy: inject a marker element before the button.
+       Streamlit wraps each st.markdown / st.button in its own
+       div.stElementContainer inside a parent stVerticalBlock.
+       We use the adjacent-sibling combinator (+) to move from
+       the marker's stElementContainer to the button's stElementContainer
+       and apply fixed positioning there. */
+    div[data-testid="stElementContainer"]:has(#new-chat-marker) + div[data-testid="stElementContainer"] {
+        position: fixed !important;
+        top: 70px;
+        left: 450px;
+        z-index: 9999;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def reset_conversation():
+    if "messages" in st.session_state:
+        st.session_state.messages = []
+
+    current_session_id = "user_vjp_pro_1"
+    from src.qa_chain import store
+    if current_session_id in store:
+        del store[current_session_id]
+
+    st.rerun()
+
+
+# Marker element must be immediately before the button so the CSS sibling selector works
+st.markdown('<div id="new-chat-marker"></div>', unsafe_allow_html=True)
+if st.button("💬New Chat", key="new-chat-fixed", help="Xóa lịch sử và bắt đầu hội thoại mới"):
+    reset_conversation()
+
+
 k_value = k_slider
 temperature_value = temperature_slider
 
@@ -162,7 +202,7 @@ for msg in st.session_state.messages:
 
 
 #render UI
-if not st.session_state.messages:
+def hero_section():
     #HERO SECTION: display when no messages are found
 
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -210,6 +250,10 @@ if not st.session_state.messages:
         if st.button(suggestions[3], use_container_width=True):
             handle_query(suggestions[3])
             st.rerun()
+
+if not st.session_state.messages:
+    hero_section()
+
 
 #input handling
 
