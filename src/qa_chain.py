@@ -1,10 +1,8 @@
 import os
 import sys
-import glob
 sys.path.append(os.path.abspath('.'))
 import pickle
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -45,7 +43,7 @@ def get_session_history(session_id : str) -> BaseChatMessageHistory:
 
 
 @traceable(run_type='chain')
-def get_chain(k, temperature, embedding_model):
+def get_chain(k, temperature, embedding_model, reranker_model):
     embedding_model = embedding_model
     #load vector store
     vector_store = Chroma(
@@ -91,27 +89,70 @@ def get_chain(k, temperature, embedding_model):
         reasoning_format = "parsed"
     )
 
+    #hugging-face based reranker (bge-reranker-v2-m3 by default)
+    reranker = reranker_model
+
+
     #Custom chain de lay parent:
-    #Query -> Ensemble -> List[child] ->extract ids -> docstore -> list[parent]
+    #Query -> Ensemble -> List[child] -> rerank -> extract ids -> docstore -> list[parent]
     def retreive_parents(input_data):
         #find child
         question = input_data["standalone_question"]
 
-        top_child_docs = ensemble_retriever.invoke(question)
+        candidate_child_docs = ensemble_retriever.invoke(question)
 
-        #find parent id (filter collision)
-        parent_ids = list(set([doc.metadata.get("doc_id") for doc in top_child_docs]))
-
-        #find parent by bytes (via pickles.loads)
-        if not parent_ids:
+        if not candidate_child_docs:
             return []
 
-        parent_docs = doc_store.mget(parent_ids)
+        #limit to top 15 for reranking (independent of k)
+        candidate_child_docs = candidate_child_docs[:15]
 
-        valid_docs = [p for p in parent_docs if p is not None]
+        pairs = [(question, doc.page_content) for doc in candidate_child_docs]
+        scores = reranker.predict(pairs)
 
-        return valid_docs[:k]
+        #zip docs with scores and sort descending
 
+        scored_docs = list(zip(candidate_child_docs, scores))
+        scored_docs.sort(key=lambda x: float(x[1]), reverse=True)
+
+        for doc, score in scored_docs:
+            try:
+                doc.metadata["rerank_score"] = float(score)
+
+            except Exception:
+                pass
+
+        # all children that pass the primary / fallback thresholds
+        thresholded_children = [doc for doc, s in scored_docs if float(s) >= 0.8]
+
+        #fallback threshold >= 0.6 if nothing passes 0.8
+        if not thresholded_children:
+            thresholded_children = [doc for doc, s in scored_docs if float(s) >= 0.6]
+
+        if not thresholded_children:
+            return []
+
+        seen_parent_ids = set()
+        unique_parent_ids = []
+
+        for doc in thresholded_children:
+            p_id = doc.metadata.get("doc_id")
+
+            if p_id is not None and p_id not in seen_parent_ids:
+                seen_parent_ids.add(p_id)
+                unique_parent_ids.append(p_id)
+
+        if not unique_parent_ids:
+            return []
+
+        parent_docs_raw = doc_store.mget(unique_parent_ids)
+        parents = [p for p in parent_docs_raw if p is not None]
+
+        max_parents = 3
+        if len(parents) > max_parents:
+            parents = parents[:max_parents]
+
+        return parents
     rephrase_system_prompt = """Given a chat history and the lastest user quesion
     which might reference context in the chat history, formulate a standalone question which can be
     understood without the chat history. Do NOT answer the question, just reformulate it if needed 
