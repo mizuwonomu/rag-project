@@ -61,6 +61,7 @@ dependencies = [
     "langchain-huggingface>=0.3.1",
     "langchain-text-splitters==0.3.11",
     "langsmith==0.4.21",
+    "llama-cloud>=1.6.0",
     "markdown==3.8.2",
     "markdown-it-py==4.0.0",
     "markupsafe==3.0.2",
