@@ -3,7 +3,6 @@ import shutil
 import sys
 import pickle
 sys.path.append(os.path.abspath('.'))
-from langchain.retrievers import ParentDocumentRetriever
 
 from langchain.storage import LocalFileStore, EncoderBackedStore
 from langchain_chroma import Chroma
@@ -32,7 +31,6 @@ def ingest_regulations():
     from src.ingestion.splitter import markdown_chunk_documents
     semantic_docs = markdown_chunk_documents
 
-
     embedding_model = get_embedding_model()    
     #Vector store - LƯU CHILD
     vector_store = Chroma(
@@ -51,24 +49,49 @@ def ingest_regulations():
         value_deserializer=pickle.loads #read: from bytes to document object
     )
 
+    
+    parent_splitter = RecursiveCharacterTextSplitter(chunk_size = 2000, chunk_overlap = 200)
+    #2000 chunk_size approx 6000 char -> approx 3000 token, tránh vượt context window
+
     child_splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
-
+     
     print("Đang Ingest PDR (Cắt Nhỏ -> Embed -> Map ID)")
-
-    retriever = ParentDocumentRetriever(
-        vectorstore=vector_store,
-        docstore=store,
-        child_splitter=child_splitter,
-    )
 
     #nạp parent docs vào
     #Tự động: cắt ra con -> embed con -> lưu cha -> Map id
 
-    """problem: docstore (LocalFileStore) wont receive a document data type, only receive if object is byte type""" 
-    retriever.add_documents(parent_docs, ids=None)
+    import uuid
+    for doc in semantic_docs:
+        chuong = doc.metadata.get('Chương', '')
+        dieu = doc.metadata.get('Điều', '')
 
+        #Tạo metadata 'title' to sync with qa_chain
+        doc.metadata['title'] = f"{chuong} - {dieu}"
+
+        #chia thành các parent lớn
+        parents = parent_splitter.split_documents([doc])
+
+        for p_doc in parents:
+            #create distinct id for each parent
+            parent_id = str(uuid.uuid4())
+
+            #chia parent thành các child
+            children = child_splitter.split_documents([p_doc])
+
+            #inject metadata for child
+            context_prefix = f"Ngữ cảnh: {p_doc.metadata['title']}\nNội dung: "
+
+            for c_doc in children:
+                c_doc.page_content = context_prefix + c_doc.page_content
+                #gán id để link về parent
+                c_doc.metadata["doc_id"] = parent_id
+
+            vector_store.add_documents(children)
+            store.mset([(parent_id, p_doc)])
+
+
+    """problem: docstore (LocalFileStore) wont receive a document data type, only receive if object is byte type"""     
     print("Done! PDR DB đã sẵn sàng")
-
 
 if __name__ == "__main__":
     ingest_regulations()
