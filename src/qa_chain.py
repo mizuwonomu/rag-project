@@ -122,15 +122,10 @@ def get_chain(k, temperature, embedding_model, reranker_model):
             except Exception:
                 pass
 
-        # all children that pass the primary / fallback thresholds
-        thresholded_children = [doc for doc, s in scored_docs if float(s) >= 0.8]
-
-        #fallback threshold >= 0.6 if nothing passes 0.8
-        if not thresholded_children:
-            thresholded_children = [doc for doc, s in scored_docs if float(s) >= 0.6]
-
-        if not thresholded_children:
-            return []
+        # all children that pass the primary thresholds
+        #23/3/2026: chỉ lấy các child docs có điểm khá trở lên
+        #Giảm threshold, tránh ngưỡng cứng
+        thresholded_children = [doc for doc, s in scored_docs if float(s) >= 0.7]
 
         seen_parent_ids = set()
         unique_parent_ids = []
@@ -148,7 +143,7 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         parent_docs_raw = doc_store.mget(unique_parent_ids)
         parents = [p for p in parent_docs_raw if p is not None]
 
-        max_parents = 3
+        max_parents = 4
         if len(parents) > max_parents:
             parents = parents[:max_parents]
 
