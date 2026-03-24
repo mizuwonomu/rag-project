@@ -51,8 +51,10 @@ def ingest_regulations():
     #nạp parent docs vào
     #Tự động: cắt ra con -> embed con -> lưu cha -> Map id
 
-    
-    get_pdr_data(vector_store=vector_store, store=store)
+    all_child_docs, all_parent_pairs = get_pdr_data()
+
+    vector_store.add_documents(all_child_docs)
+    store.mset(all_parent_pairs)
     
     
 
