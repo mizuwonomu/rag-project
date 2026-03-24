@@ -153,10 +153,10 @@ def get_chain(k, temperature, embedding_model, reranker_model):
             parents = parents[:max_parents]
 
         return parents
-    rephrase_system_prompt = """Given a chat history and the lastest user quesion
-    which might reference context in the chat history, formulate a standalone question which can be
-    understood without the chat history. Do NOT answer the question, just reformulate it if needed 
-    and otherwise return it as is.
+    rephrase_system_prompt = """"Cho trước lịch sử trò chuyện và câu hỏi mới nhất của người dùng (câu hỏi này có thể chứa các thông tin tham chiếu đến ngữ cảnh trong lịch sử trò chuyện), 
+    hãy tạo ra một câu hỏi độc lập có thể hiểu được mà không cần đến lịch sử trò chuyện. 
+    KHÔNG trả lời câu hỏi, chỉ viết lại nó nếu cần thiết, nếu không thì trả về nguyên bản."
+    Chỉ được trả lời bằng TIẾNG VIỆT.
     """
 
     rephrase_prompt = ChatPromptTemplate.from_messages([
