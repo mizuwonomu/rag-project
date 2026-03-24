@@ -104,8 +104,8 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         if not candidate_child_docs:
             return []
 
-        #limit to top 15 for reranking (independent of k)
-        candidate_child_docs = candidate_child_docs[:15]
+        #limit to top 20 for reranking (independent of k)
+        candidate_child_docs = candidate_child_docs[:20]
 
         pairs = [(question, doc.page_content) for doc in candidate_child_docs]
         scores = reranker.predict(pairs)
