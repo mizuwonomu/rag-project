@@ -6,14 +6,16 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain.storage import LocalFileStore, EncoderBackedStore
+from langchain_classic.storage import LocalFileStore, EncoderBackedStore
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
-from langchain.schema.runnable import RunnablePassthrough #chạy nhiều nhánh xử lý cùng 1 lúc
-from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnableParallel, RunnableLambda
+from langchain_classic.retrievers import EnsembleRetriever
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableParallel, RunnableLambda, RunnablePassthrough
+#parallel: chạy nhiều nhánh xử lý cùng 1 lúc, lambda: định nghĩa lambda nhưng thiết kế theo 
+#dạng trigger on time. Passthrough: truyền type on time
 from langsmith import traceable
 
 from dotenv import load_dotenv
@@ -248,7 +250,7 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         temperature = temperature,
         reasoning_format = "parsed"
     )
-    
+
     answer_chain = (
         qa_prompt
         | inference_llm
