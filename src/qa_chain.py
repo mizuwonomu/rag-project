@@ -82,13 +82,6 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         weights = [0.5, 0.5]
     )
 
-    #test hybrid with no filter
-    llm = ChatGroq(
-        model = "qwen/qwen3-32b",
-        temperature = temperature,
-        reasoning_format = "parsed"
-    )
-
     #hugging-face based reranker (bge-reranker-v2-m3 by default)
     reranker = reranker_model
 
@@ -160,8 +153,15 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         ("human", "{question}")
     ])
 
+    #ở bước rewrite, giữ nguyên từ khoá luật từ history và new input nhưng văn phong cần tự nhiên theo Việt, tránh rập khuôn -> temp 0.3
+    query_rewrite_llm = ChatGoogleGenerativeAI(
+        model="gemini-3.1-flash-lite-preview",
+        max_retries=0,
+        temperature=0.2
+    )
+
     #chain nhỏ chỉ làm nhiệm vụ: Input (History + Query) -> Output (String query mới)
-    rephrase_chain = rephrase_prompt | llm | StrOutputParser()
+    rephrase_chain = rephrase_prompt | query_rewrite_llm | StrOutputParser()
 
     #Phân loại câu hỏi thuộc rag hay xã giao
     router_template = """
@@ -182,7 +182,14 @@ def get_chain(k, temperature, embedding_model, reranker_model):
 
     router_prompt = ChatPromptTemplate.from_template(router_template)
 
-    router_chain = router_prompt | llm | StrOutputParser()
+    #router bắt buộc không chứa bất cứ thông tin cảm xúc hay sáng tạo, chỉ dùng để định tuyến
+    router_llm = ChatGoogleGenerativeAI(
+        model="gemini-3.1-flash-lite-preview",
+        max_retries=0,
+        temperature= 0.0
+    )
+
+    router_chain = router_prompt | router_llm | StrOutputParser()
     
     #Nhánh A: Chat thông thường(dùng cách xã giao của model)
     chat_prompt = ChatPromptTemplate.from_messages([
@@ -192,11 +199,18 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         
         ("human", "{question}"),
     ])
+
+    #do chat thông thường không nhất thiết cần dùng luật -> chọn model có khả năng nói tự nhiên, response nhanh
+    chitchat_llm = ChatGoogleGenerativeAI(
+        model="gemini-3.1-flash-lite-preview",
+        max_retries=0,
+        temperature=0.7
+    )
     
     #Chuẩn hóa output format giống rag chain, trả về dạng 辞書型
     chat_chain = (
         chat_prompt 
-        | llm 
+        | chitchat_llm 
         | StrOutputParser()
         | RunnableLambda(lambda x: {"answer": x, "context": []}) #fake content rỗng
     )
@@ -228,11 +242,19 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         ("human", "{question}"),
     ])
     
+    #test hybrid with no filter
+    inference_llm = ChatGroq(
+        model = "qwen/qwen3-32b",
+        temperature = temperature,
+        reasoning_format = "parsed"
+    )
+    
     answer_chain = (
         qa_prompt
-        | llm
+        | inference_llm
         | StrOutputParser()
     )
+
     rag_chain=RunnableParallel(
         #Nhánh 1: tính toán câu hỏi độc lập
 
