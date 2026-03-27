@@ -7,7 +7,6 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_classic.storage import LocalFileStore, EncoderBackedStore
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
@@ -143,10 +142,19 @@ def get_chain(k, temperature, embedding_model, reranker_model):
             parents = parents[:max_parents]
 
         return parents
-    rephrase_system_prompt = """"Cho trước lịch sử trò chuyện và câu hỏi mới nhất của người dùng (câu hỏi này có thể chứa các thông tin tham chiếu đến ngữ cảnh trong lịch sử trò chuyện), 
-    hãy tạo ra một câu hỏi độc lập có thể hiểu được mà không cần đến lịch sử trò chuyện. 
-    KHÔNG trả lời câu hỏi, chỉ viết lại nó nếu cần thiết, nếu không thì trả về nguyên bản."
-    Chỉ được trả lời bằng TIẾNG VIỆT.
+    rephrase_system_prompt = """You are a Query Transformation Engine for a Vietnamese university regulation QA system.
+    Your ONLY Task: Given a chat history and a new user question, rewrite the question into a single standalone question in Vietnamese.
+
+    Rules:
+    - Output ONLY the rewritten question. Nothing else.
+    - DO NOT answer human's question.
+    - NEVER ask for clarification.
+    - If no rewrite needed, return the original question EXACTLY as-is.
+    - Preserve ALL Vietnamese legal/academic terms unchanged.
+
+    Examples:
+    [No history] Query: "Quy định về học phí" -> Quy định về học phí
+    [History: Quy định về học phí] Query: "Thế còn miễn giảm?" -> Quy định miễn giảm học phí tại HUST là gì?"
     """
 
     rephrase_prompt = ChatPromptTemplate.from_messages([
@@ -156,8 +164,8 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     ])
 
     #ở bước rewrite, giữ nguyên từ khoá luật từ history và new input nhưng văn phong cần tự nhiên theo Việt, tránh rập khuôn -> temp 0.3
-    query_rewrite_llm = ChatGoogleGenerativeAI(
-        model="gemini-3.1-flash-lite-preview",
+    query_rewrite_llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
         max_retries=0,
         temperature=0.2
     )
@@ -169,7 +177,11 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     router_template = """
     M là một chuyên gia phân loại câu hỏi. Hãy đọc câu hỏi của người dùng và quyết định câu hỏi đó thuộc loại nào"
 
-    1. 'chat': Các câu chào hỏi xã giao, hỏi thăm sức khỏe, không liên quan đến thông tin cụ thể trong tài liệu (VD: Chào bạn, bạn tên gì?, ...)
+    1. 'chat': Các câu chào hỏi xã giao, hỏi thăm sức khỏe, không liên quan đến thông tin cụ thể trong tài liệu 
+    - Ví dụ: 
+    + Human: Hôm nay nên ăn gì nhỉ? -> Tao nghĩ hôm nay mày nên ăn phở đó! 
+    + Human: Tự nhiên buồn ghê -> Sao thế, có chuyện gì m muốn nói không?
+    
     2. 'RAG': 
         - Các câu hỏi liên quan đến quy chế đào tạo, Luật, Quy định nhà trường
         - Từ khóa nhận diện: Ví dụ: "học phí", "tín chỉ", "cảnh báo học tập", "điểm học phần",...
@@ -185,8 +197,8 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     router_prompt = ChatPromptTemplate.from_template(router_template)
 
     #router bắt buộc không chứa bất cứ thông tin cảm xúc hay sáng tạo, chỉ dùng để định tuyến
-    router_llm = ChatGoogleGenerativeAI(
-        model="gemini-3.1-flash-lite-preview",
+    router_llm = ChatGroq(
+        model="llama-3.1-8b-instant",
         max_retries=0,
         temperature= 0.0
     )
@@ -195,7 +207,18 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     
     #Nhánh A: Chat thông thường(dùng cách xã giao của model)
     chat_prompt = ChatPromptTemplate.from_messages([
-        ("system", "M là một trợ lý AI vui tính. Hãy trò chuyện thân thiện với người dùng. Gọi user là 'mày', bản thân là 'tao', có thể viết tắt thành 't' và 'm'."),
+        ("system", """You are a friendly and polite AI assistant for students at Hanoi University of Science and Technology (HUST). 
+        The user is just chatting normally (not asking about academic regulations).
+
+        Rules:
+        1. ALWAYS respond in natural, conversational Vietnamese (Tiếng Việt). NEVER use English.
+        2. Use a friendly tone, can use 1-2 any emojis that suits the context tone, or 1-2 Vietnamese emojis (e.g. "=))))", ":)))" )
+        3. Use pronouns "t" (stands for "tao" in Vietnamese) for yourself, call user as "m" (stands for "mày" in Vietnamese).
+
+        Example response: "Chào m nha! 😎 Tao là trợ lý AI của HUST đây. Hôm nay m có cần t hỗ trợ tra cứu quy chế đào tạo hay điểm số gì không nào?"
+        + Example 2: "T nghĩ hôm nay m nên đi ăn cơm tấm đó"
+        + Example 3: T có gợi ý về trò chơi rất hay nè"
+        """),
 
         MessagesPlaceholder(variable_name="chat_history"),
         
@@ -203,8 +226,8 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     ])
 
     #do chat thông thường không nhất thiết cần dùng luật -> chọn model có khả năng nói tự nhiên, response nhanh
-    chitchat_llm = ChatGoogleGenerativeAI(
-        model="gemini-3.1-flash-lite-preview",
+    chitchat_llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
         max_retries=0,
         temperature=0.7
     )
