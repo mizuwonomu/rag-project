@@ -146,7 +146,7 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         # all children that pass the primary thresholds
         #23/3/2026: chỉ lấy các child docs có điểm khá trở lên
         #Giảm threshold, tránh ngưỡng cứng
-        thresholded_children = [doc for doc, s in scored_docs if float(s) >= 0.7]
+        thresholded_children = [doc for doc, s in scored_docs if float(s) >= 0.5][:5]
 
         seen_parent_ids = set()
         unique_parent_ids = []
