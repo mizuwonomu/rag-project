@@ -4,7 +4,7 @@ import sys
 import pickle
 sys.path.append(os.path.abspath('.'))
 
-from langchain.storage import LocalFileStore, EncoderBackedStore
+from langchain_classic.storage import LocalFileStore, EncoderBackedStore
 from langchain_chroma import Chroma
 from src.utils import get_embedding_model
 from src.ingestion.splitter import get_pdr_data
