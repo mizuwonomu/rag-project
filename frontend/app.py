@@ -52,14 +52,14 @@ with st.sidebar:
         "Số lượng chunk tìm kiếm: (k):",
         min_value = 1,
         max_value = 15,
-        value = 10,
+        value = 15,
         step = 1,
         )
         temperature_slider = st.slider(
             "Temperature:",
             min_value = 0.0,
             max_value = 1.0,
-            value = 0.1,
+            value = 0.5,
             step = 0.1,
         )
 
