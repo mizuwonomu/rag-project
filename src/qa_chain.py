@@ -11,7 +11,9 @@ from langchain_groq import ChatGroq
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever
-from langchain_core.output_parsers import StrOutputParser
+from pydantic import BaseModel, Field
+from typing import List
+from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnableLambda, RunnablePassthrough
 #parallel: chạy nhiều nhánh xử lý cùng 1 lúc, lambda: định nghĩa lambda nhưng thiết kế theo 
 #dạng trigger on time. Passthrough: truyền type on time
@@ -42,6 +44,11 @@ def get_session_history(session_id : str) -> BaseChatMessageHistory:
     
     return store[session_id]
 
+#base model pydantic output for query rephrasing (multi-query expansion)
+#Aka query decomposition
+class QueryExpansion(BaseModel):
+    reasoning: str = Field(description="Phân tích ngắn gọn ý định của câu hỏi gốc") #Field: chú thích rõ key để làm gì
+    queries: List[str] = Field(description="Danh sách tối đa 3 câu hỏi đơn lẻ bằng tiếng Việt để tìm kiếm")
 
 @traceable(run_type='chain')
 def get_chain(k, temperature, embedding_model, reranker_model):
@@ -90,10 +97,28 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     #Custom chain de lay parent:
     #Query -> Ensemble -> List[child] -> rerank -> extract ids -> docstore -> list[parent]
     def retreive_parents(input_data):
+        original_question = input_data["input_pass"]["question"] #lấy lại câu hỏi gốc
         #find child
-        question = input_data["standalone_question"]
+        query_obj = input_data["standalone_question"] #object pydantic (str and list str)
 
-        candidate_child_docs = ensemble_retriever.invoke(question)
+        sub_queries = query_obj.queries #lấy attribute list "queries" từ class pydantic
+        if not sub_queries:
+            sub_queries = [original_question] #backup if llama can't make pydantic agreement
+
+        #chạy song song 3 queries
+        #kết quả là list[list[Document]] (Runnable[list[RetrieverInput], list[RetrieverOutput]])
+        nested_docs = ensemble_retriever.map().invoke(sub_queries)
+
+        #flatten list of list to a single list và lọc trùng bằng page_content
+        unique_docs_dict = {}
+        for sublist in nested_docs:
+            if sublist: #đảm bảo không rỗng
+                for doc in sublist:
+                    #dùng content làm key để lọc trùng document cho từng queries invoke
+                    if doc.page_content not in unique_docs_dict:
+                        unique_docs_dict[doc.page_content] = doc
+
+        candidate_child_docs = list(unique_docs_dict.values())
 
         if not candidate_child_docs:
             return []
@@ -101,7 +126,9 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         #limit to top 20 for reranking (independent of k)
         candidate_child_docs = candidate_child_docs[:20]
 
-        pairs = [(question, doc.page_content) for doc in candidate_child_docs]
+        #ghép với câu hỏi gốc để chấm điểm
+        #sub-queries chỉ làm nhiệm vụ tăng recall, mà reranker cần precision -> phải luôn đối chiếu với câu hỏi gốc với chunks
+        pairs = [(original_question, doc.page_content) for doc in candidate_child_docs]
         scores = reranker.predict(pairs)
 
         #zip docs with scores and sort descending
@@ -151,17 +178,22 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     - NEVER ask for clarification.
     - If no rewrite needed, return the original question EXACTLY as-is.
     - Preserve ALL Vietnamese legal/academic terms unchanged.
+    - Generate maximum 3 sub-queries.
 
+    {format_instructions}
     Examples:
     [No history] Query: "Quy định về học phí" -> Quy định về học phí
     [History: Quy định về học phí] Query: "Thế còn miễn giảm?" -> Quy định miễn giảm học phí tại HUST là gì?"
     """
 
+    parser = PydanticOutputParser(pydantic_object=QueryExpansion)
+
     rephrase_prompt = ChatPromptTemplate.from_messages([
         ("system", rephrase_system_prompt),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{question}")
-    ])
+    ]).partial(format_instructions=parser.get_format_instructions())
+    #partial: luôn nhét format_instructions ngay từ lúc prompt được khởi tạo
 
     #ở bước rewrite, giữ nguyên từ khoá luật từ history và new input nhưng văn phong cần tự nhiên theo Việt, tránh rập khuôn -> temp 0.3
     query_rewrite_llm = ChatGroq(
@@ -170,8 +202,8 @@ def get_chain(k, temperature, embedding_model, reranker_model):
         temperature=0.2
     )
 
-    #chain nhỏ chỉ làm nhiệm vụ: Input (History + Query) -> Output (String query mới)
-    rephrase_chain = rephrase_prompt | query_rewrite_llm | StrOutputParser()
+    #chain nhỏ chỉ làm nhiệm vụ: Input (History + Query) -> Output (List string query mới) + Plan thoughts
+    rephrase_chain = rephrase_prompt | query_rewrite_llm | parser
 
     #Phân loại câu hỏi thuộc rag hay xã giao
     router_template = """
