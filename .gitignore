@@ -19,3 +19,7 @@ doc_store_pdr/
 
 #Log feedback
 *.csv
+
+#Evaluate cache
+cache/
+.raw_cache/
