@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath('.'))
 import streamlit as st
 from src.qa_chain import get_chain, debug_memory
 from src.utils import get_embedding_model
+from src.reranker_utils import load_reranker
 import csv
 import os
 from datetime import datetime
@@ -36,6 +37,7 @@ def save_feedback(question, answer, rating, reason="", comment=""):
         writer.writerow([timestamp, question, answer, rating, reason, comment])
 
 embedding_model = get_embedding_model()
+reranker_model = load_reranker()
 
 #sidebar điều chỉnh kawrgs, temp
 with st.sidebar:
@@ -49,8 +51,8 @@ with st.sidebar:
         k_slider = st.slider(
         "Số lượng chunk tìm kiếm: (k):",
         min_value = 1,
-        max_value = 10,
-        value = 3,
+        max_value = 15,
+        value = 15,
         step = 1,
         )
         temperature_slider = st.slider(
@@ -137,7 +139,7 @@ def stream_handler(chain, question, session_id):
 
 
 def load_chain(k,temperature):
-    return get_chain(k = k, temperature = temperature, embedding_model = embedding_model)
+    return get_chain(k = k, temperature = temperature, embedding_model = embedding_model, reranker_model = reranker_model)
 
 rag_chain = load_chain(k = k_value, temperature = temperature_value)
 
