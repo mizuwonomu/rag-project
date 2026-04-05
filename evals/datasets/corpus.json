@@ -1,0 +1,152 @@
+[
+  {
+    "id": 1,
+    "user_input": "Sinh viên đại học không bị cảnh báo học tập thì kỳ chính được phép đăng ký tối đa bao nhiêu tín chỉ?",
+    "response": "Theo điểm a khoản 2 Điều 10, sinh viên không thuộc diện cảnh báo học tập được đăng ký tối đa 24 tín chỉ trong học kỳ chính.",
+    "retrieved_contexts": "Điều 10. Đăng ký học tập chương trình đại học\n2. Số lượng TC đăng ký:\na) Sinh viên không thuộc diện cảnh báo học tập theo quy định tại khoản 1 Điều 19 của Quy chế này được đăng ký tối đa 24 TC và tối thiểu 12 TC trong học kỳ chính, không áp dụng ngưỡng TC đăng ký tối thiểu với sinh viên trình độ năm cuối."
+  },
+  {
+    "id": 2,
+    "user_input": "Để lấy bằng cử nhân thì khối lượng học tập chuẩn tối thiểu là bao nhiêu tín chỉ?",
+    "response": "Theo bảng quy định tại khoản 6 Điều 2, khối lượng học tập tối thiểu để tốt nghiệp chương trình cử nhân là 132 tín chỉ.",
+    "retrieved_contexts": "Điều 2. Ngành đào tạo, chương trình đào tạo\n6. Thời gian và khối lượng học tập chuẩn đối với các CTĐT theo hình thức chính quy không kể các học phần bổ sung kiến thức được quy định như sau:\nChương trình: Cử nhân\nNgười học: Tốt nghiệp THPT\nThời gian: 4 năm\nKhối lượng tối thiểu: 132 tín chỉ"
+  },
+  {
+    "id": 3,
+    "user_input": "Sinh viên có được thi lại nếu thi cuối kỳ bị trượt không?",
+    "response": "Theo khoản 1 Điều 6, người học chỉ được thi cuối kỳ một lần đối với mỗi học phần đã đăng ký học trong học kỳ và không có lần thi lại.",
+    "retrieved_contexts": "Điều 6. Hoãn thi, miễn thi, phúc tra và khiếu nại điểm\n1. Người học được thi cuối kỳ một lần đối với mỗi học phần đã đăng ký học trong học kỳ (kể cả trường hợp có điểm quá trình là điểm liệt) và không có lần thi lại."
+  },
+  {
+    "id": 4,
+    "user_input": "Thời gian giải quyết phúc tra điểm thi là trong bao nhiêu ngày?",
+    "response": "Theo khoản 4 Điều 6, người học có thể đề nghị phúc tra hoặc khiếu nại điểm trong thời hạn 7 ngày kể từ khi điểm học phần được cập nhật vào tài khoản học tập.",
+    "retrieved_contexts": "Điều 6. Hoãn thi, miễn thi, phúc tra và khiếu nại điểm\n4. Người học có thể đề nghị phúc tra hoặc khiếu nại điểm trong thời hạn 7 ngày kể từ khi điểm học phần được cập nhật vào tài khoản học tập của người học."
+  },
+  {
+    "id": 5,
+    "user_input": "Tiểu luận tổng quan của tiến sĩ phải hoàn thành trong thời gian bao lâu?",
+    "response": "Theo điểm b khoản 1 Điều 39, NCS phải hoàn thành tiểu luận tổng quan với kết quả đạt trong thời hạn 12 tháng kể từ khi có quyết định công nhận NCS.",
+    "retrieved_contexts": "Điều 39. Tiểu luận tổng quan và chuyên đề tiến sĩ\nb) NCS phải hoàn thành tiểu luận tổng quan với kết quả đạt trong thời hạn 12 tháng kể từ khi có quyết định công nhận NCS."
+  },
+  {
+    "id": 6,
+    "user_input": "Sinh viên năm nhất muốn xin chuyển ngành thì cần những điều kiện gì và CPA tối thiểu phải đạt bao nhiêu?",
+    "response": "Theo khoản 1 Điều 17, sinh viên học hết năm thứ nhất muốn chuyển chương trình đào tạo cần đáp ứng các điều kiện: đủ điểm trúng tuyển của chương trình muốn chuyển sang, CPA đạt từ loại khá trở lên (CPA ≥ 2,5), không bị cảnh báo học tập và không đang bị kỷ luật.",
+    "retrieved_contexts": "Điều 17. Chuyển chương trình đào tạo, hình thức đào tạo\n1. Sinh viên học hết năm học thứ nhất (tính cả thời gian nghỉ tạm thời nếu có) được xem xét chuyển sang học một CTĐT khác nếu đáp ứng đủ các điều kiện sau: a) Đáp ứng điều kiện trúng tuyển của CTĐT muốn chuyển sang học; b) Xếp loại học lực căn cứ theo điểm trung bình tích lũy (CPA) đạt từ loại khá trở lên (CPA ≥ 2,5); c) Không bị cảnh báo học tập; d) Hiện đang không bị kỷ luật."
+  },
+  {
+    "id": 7,
+    "user_input": "Muốn đăng ký học cùng lúc hai chương trình thì sinh viên phải đạt điều kiện học lực ở chương trình thứ nhất như thế nào và sớm nhất là năm thứ mấy được đăng ký?",
+    "response": "Theo khoản 2 Điều 18, sinh viên được đăng ký chương trình thứ hai sớm nhất khi đã được xếp trình độ năm thứ hai của chương trình thứ nhất, với điều kiện điểm trung bình tích lũy (CPA) xếp loại từ trung bình trở lên và đáp ứng điều kiện trúng tuyển của chương trình thứ hai.",
+    "retrieved_contexts": "Điều 18. Học cùng lúc hai chương trình\n2. Sinh viên được phép đăng ký học chương trình thứ hai sớm nhất khi đã được xếp trình độ năm thứ hai của chương trình thứ nhất. Tại thời điểm đăng ký, sinh viên phải có học lực tính theo điểm trung bình tích lũy (CPA) xếp loại từ trung bình trở lên và đáp ứng điều kiện trúng tuyển của chương trình thứ hai trong năm tuyển sinh."
+  },
+  {
+    "id": 8,
+    "user_input": "Nếu rút học phần trong 7 tuần đầu của học kỳ thì học phí tính thế nào và có áp dụng cho kỳ hè không?",
+    "response": "Theo khoản 3 Điều 9, người học đề nghị rút học phần trong 7 tuần đầu của học kỳ và được giải quyết thì chỉ phải đóng 50% học phí của học phần đó. Tuy nhiên, quy định này không áp dụng đối với các học phần học ở học kỳ hè.",
+    "retrieved_contexts": "Điều 9. Học phí\n3. Người học thuộc CTĐT cử nhân, kỹ sư có đơn đề nghị rút học phần trong khoảng thời gian 7 tuần đầu của học kỳ, nếu được giải quyết theo nguyện vọng thì chỉ đóng một nửa (50%) học phí của học phần đó. Trường hợp ngoại lệ là khi đề nghị rút học phần trong tuần đầu tiên của học kỳ thứ 2, nếu được giải quyết theo nguyện vọng thì không phải đóng học phí của học phần đó. Quy định tại khoản này không áp dụng với các học phần học ở học kỳ hè."
+  },
+  {
+    "id": 9,
+    "user_input": "Trường hợp nào sinh viên bị cảnh báo học tập mức 3 và hậu quả nếu bị mức 3 hai lần liên tiếp là gì?",
+    "response": "Theo điểm c khoản 1 Điều 19, sinh viên có số tín chỉ nợ đọng từ đầu khóa lớn hơn 24 sẽ bị cảnh báo học tập mức 3. Nếu bị cảnh báo học tập mức 3 lần thứ hai liên tiếp, sinh viên sẽ bị buộc thôi học theo điểm a khoản 3 Điều 19.",
+    "retrieved_contexts": "Điều 19. Cảnh báo học tập và buộc thôi học\nc) Áp dụng cảnh báo học tập mức 3 đối với sinh viên có số TC nợ đọng từ đầu khóa lớn hơn 24.\n3. Buộc thôi học là hình thức áp dụng đối với những sinh viên có kết quả học tập rất kém theo một trong các trường hợp như sau: a) Sinh viên bị cảnh báo học tập mức 3 lần thứ hai liên tiếp."
+  },
+  {
+    "id": 10,
+    "user_input": "Để được mở lớp học phần rút gọn, sinh viên cần thoả mãn đồng thời những điều kiện nào?",
+    "response": "Theo khoản 5 Điều 10, để được mở lớp học phần rút gọn, sinh viên phải thỏa mãn đồng thời 3 điều kiện: đã học học phần đó ít nhất 02 lần chưa đạt, điểm quá trình lần học gần nhất từ 2 điểm trở lên, và phải đạt trình độ từ năm thứ ba trở lên.",
+    "retrieved_contexts": "Điều 10. Đăng ký học tập chương trình đại học\n5. Đối với học phần có giờ lên lớp, xem xét mở lớp học phần rút gọn căn cứ trên nguyện vọng của sinh viên khi thỏa mãn đồng thời các điều kiện sau: a) Sinh viên đã học học phần đó ít nhất 02 lần nhưng chưa đạt; b) Điểm quá trình của học phần phải từ 2 điểm trở lên trong lần học gần nhất; c) Sinh viên đạt trình độ năm học từ năm thứ ba trở lên theo quy định tại khoản 5 Điều 12 Quy chế này."
+  },
+  {
+    "id": 11,
+    "user_input": "Bảo vệ luận văn thạc sĩ lần thứ hai phải được thực hiện trong thời gian bao lâu và ai là người chịu chi phí?",
+    "response": "Theo khoản 1 và khoản 3 Điều 33, học viên được phép chỉnh sửa, bổ sung luận văn để bảo vệ lần thứ hai trong thời hạn 3 tháng tính từ ngày bảo vệ lần thứ nhất. Học viên phải tự chi trả kinh phí cho việc chỉnh sửa và tổ chức bảo vệ luận văn lần thứ hai.",
+    "retrieved_contexts": "Điều 33. Bảo vệ luận văn lần thứ hai\n1. Trong trường hợp luận văn không đạt và học viên còn được phép học tối thiểu 3 tháng, học viên được phép chỉnh sửa, bổ sung luận văn để bảo vệ lần thứ hai trong thời hạn 3 tháng tính từ ngày bảo vệ luận văn lần thứ nhất.\n3. Học viên tự chi trả kinh phí cho việc chỉnh sửa, bổ sung luận văn và tổ chức bảo vệ luận văn lần thứ hai; kinh phí thực hiện và bảo vệ luận văn theo đề tài mới."
+  },
+  {
+    "id": 12,
+    "user_input": "Thời gian xin nghỉ học tạm thời để đi nghĩa vụ quân sự có bị tính vào tiến độ học không và thủ tục để quay lại học như thế nào?",
+    "response": "Theo điểm c khoản 2 Điều 16, thời gian nghỉ học tạm thời do điều động vào lực lượng vũ trang không tính vào thời gian học chậm tiến độ. Khi muốn quay lại, theo điểm đ khoản 2 Điều 16, sinh viên phải nộp đơn đề nghị chậm nhất 1 tuần trước khi bắt đầu học kỳ mới kèm theo giấy xác nhận đã hoàn thành nhiệm vụ.",
+    "retrieved_contexts": "Điều 16. Nghỉ học tạm thời và tự nguyện thôi học\nc) Thời gian nghỉ học tạm thời do sinh viên được điều động vào lực lượng vũ trang (là thời gian được ghi trong quyết định của cấp có thẩm quyền) không tính vào thời gian học chậm tiến độ.\nđ) Sinh viên phải nộp đơn đề nghị tiếp nhận trở lại học chậm nhất 1 tuần trước khi bắt đầu học kỳ mới. Đối với trường hợp được điều động vào lực lượng vũ trang hoặc đi làm nghĩa vụ quốc tế, sinh viên phải nộp kèm theo giấy xác nhận đã hoàn thành nhiệm vụ."
+  },
+  {
+    "id": 13,
+    "user_input": "Học viên cao học không đăng ký học tập trong hai học kỳ liên tiếp thì bị xử lý ra sao?",
+    "response": "Theo điểm b khoản 3 Điều 36, học viên chương trình thạc sĩ không đăng ký học tập trong hai học kỳ liên tiếp sẽ bị áp dụng hình thức buộc thôi học.",
+    "retrieved_contexts": "Điều 36. Gia hạn thời gian học tập, thôi học\n3. Học viên bị buộc thôi học trong các trường hợp sau đây: ... b) Học viên không đăng ký học tập trong hai học kỳ liên tiếp."
+  },
+  {
+    "id": 14,
+    "user_input": "Sinh viên tích luỹ được 95 tín chỉ thì được xếp hạng là sinh viên năm mấy, và nếu điểm CPA là 3.19 thì xếp loại học lực gì?",
+    "response": "Theo bảng phân loại tại khoản 5 và khoản 6 Điều 12, số tín chỉ tích lũy là 95 nằm ở dải 64-95 nên sinh viên được xếp hạng trình độ Năm thứ ba. Với mức điểm CPA là 3,19 (nằm trong dải 2,5-3,19), sinh viên được xếp loại học lực Khá.",
+    "retrieved_contexts": "Điều 12. Ý kiến phản hồi của người học, đánh giá kết quả học tập\n5. Sinh viên được xếp hạng trình độ năm học căn cứ số TC tích lũy (TCTL) như sau:\nSố TCTL < 32 32 - 63 64 - 95 96 -127 ≥ 128\nTrình độ Năm thứ nhất Năm thứ hai Năm thứ ba Năm thứ tư Năm thứ năm\n6. Sinh viên được xếp loại học lực theo học kỳ căn cứ điểm trung bình học kỳ và xếp loại học lực từ đầu khóa căn cứ điểm trung bình tích lũy như sau:\nGPA hoặc CPA < 1,0 1,0-1,99 2,0-2,49 2,5-3,19 3,2-3,59 3,6-4,0\nXếp loại Kém Yếu Trung bình Khá Giỏi Xuất sắc"
+  },
+  {
+    "id": 15,
+    "user_input": "Sinh viên có điểm trung bình học kỳ (GPA) theo thang 4 là 2,8 thì khi quy đổi sang thang điểm 10 sẽ tính như thế nào và kết quả bằng bao nhiêu?",
+    "response": "Theo khoản 7 Điều 12, điểm GPA 2,8 thuộc dải điểm từ 2,5 đến cận 3,2. Công thức quy đổi áp dụng là: Điểm thang 10 = Điểm thang 4 × 1,42 + 3,45. Do đó, điểm quy đổi là 2,8 × 1,42 + 3,45 = 7,426.",
+    "retrieved_contexts": "Điều 12. Ý kiến phản hồi của người học, đánh giá kết quả học tập\n7. Trong trường hợp cần thiết, điểm trung bình học kỳ và điểm trung bình tích lũy đạt từ loại trung bình trở lên có thể được quy đổi tương đương sang thang điểm 10 theo quy tắc như sau:\nDải điểm thang 4 2,5 đến cận 3,2 | Dải điểm thang 10 tương đương 7,0 đến cận 8,0 | Công thức quy đổi Điểm thang 10 = Điểm thang 4 × a + b : a = 1,42; b = 3,45"
+  },
+  {
+    "id": 16,
+    "user_input": "Điểm số bao nhiêu bị coi là điểm liệt đối với học phần đồ án tốt nghiệp cử nhân và đối với các học phần thông thường khác?",
+    "response": "Theo điểm a và điểm b khoản 5 Điều 5, điểm số dưới 5 đối với đồ án/khóa luận tốt nghiệp cử nhân, kỹ sư bị coi là điểm liệt. Đối với các học phần khác, điểm số dưới 3 bị coi là điểm liệt.",
+    "retrieved_contexts": "Điều 5. Điểm học phần\n5. Điểm quá trình và điểm cuối kỳ là điểm số được cho theo thang 10 và có thể lẻ tới 0,5: a) Điểm số dưới 5 đối với học phần đồ án tốt nghiệp/khóa luận tốt nghiệp cử nhân, đồ án tốt nghiệp kỹ sư được coi là điểm liệt; b) Điểm số dưới 3 đối với các học phần khác với quy định tại điểm a khoản 5 Điều này được coi là điểm liệt;"
+  },
+  {
+    "id": 17,
+    "user_input": "Sinh viên đạt CPA toàn khóa là 3,62 nhưng tổng số tín chỉ học lại chiếm 7% so với tổng tín chỉ tính điểm thì bằng tốt nghiệp nhận được xếp loại gì?",
+    "response": "Theo khoản 6 Điều 12, mức CPA 3,62 (nằm trong dải 3,6-4,0) tương đương hạng Xuất sắc. Tuy nhiên, theo điểm a khoản 2 Điều 15, do khối lượng tín chỉ học lại vượt quá 5% tổng số tín chỉ, hạng tốt nghiệp sẽ bị giảm xuống một mức, nên bằng tốt nghiệp chỉ còn xếp loại Giỏi.",
+    "retrieved_contexts": "Điều 12. Ý kiến phản hồi của người học, đánh giá kết quả học tập\n6. Sinh viên được xếp loại học lực theo học kỳ căn cứ điểm trung bình học kỳ và xếp loại học lực từ đầu khóa căn cứ điểm trung bình tích lũy như sau: GPA hoặc CPA ... 3,6-4,0 Xếp loại ... Xuất sắc\nĐiều 15. Điểm trung bình toàn khóa và hạng tốt nghiệp đại học\n2. Hạng tốt nghiệp được xếp dựa trên điểm trung bình toàn khóa như xếp loại học lực quy định tại khoản 6 Điều 12 của Quy chế này, riêng trong các trường hợp sau đây thì hạng tốt nghiệp của những sinh viên có điểm trung bình toàn khóa xếp loại giỏi trở lên sẽ bị giảm một mức: a) Khối lượng của các học phần phải học lại vượt quá 5% của tổng số TC của các học phần được dùng tính điểm trung bình toàn khóa."
+  },
+  {
+    "id": 18,
+    "user_input": "Nghiên cứu sinh đăng ký chưa có bằng thạc sĩ thì phải học tối thiểu bao nhiêu tín chỉ cho các học phần tiến sĩ và phải học những học phần bổ sung nào?",
+    "response": "Theo khoản 1 và khoản 2 Điều 38, NCS chưa có bằng thạc sĩ phải học bổ sung toàn bộ học phần của CTĐT thạc sĩ theo định hướng nghiên cứu (trừ luận văn), đồng thời phải hoàn thành tối thiểu 8 tín chỉ (tương ứng 3-4 học phần) đối với các học phần tiến sĩ.",
+    "retrieved_contexts": "Điều 38. Học phần bổ sung và học phần tiến sĩ\n1. Các học phần bổ sung nhằm hỗ trợ NCS có đủ kiến thức, trình độ chuyên môn để thực hiện đề tài nghiên cứu.\nb) Đối với NCS chưa có bằng thạc sĩ: các học phần bổ sung bao gồm toàn bộ học phần của CTĐT thạc sĩ theo định hướng nghiên cứu thuộc ngành tương ứng trừ luận văn thạc sĩ.\n2. Các học phần tiến sĩ nhằm nâng cao trình độ lý thuyết, cập nhật các kiến thức mới nhất...\na) Mỗi NCS phải hoàn thành tối thiểu 8 TC tương ứng 3-4 học phần tiến sĩ."
+  },
+  {
+    "id": 19,
+    "user_input": "Nếu kết quả điểm danh cho thấy sinh viên vắng mặt trên lớp 4 buổi thì điểm quá trình bị cộng trừ thế nào, và nếu vắng mặt 5 buổi thì bị trừ bao nhiêu?",
+    "response": "Theo bảng quy định tại khoản 2 Điều 5, nếu sinh viên vắng mặt từ 3-4 buổi thì điểm quá trình bị trừ 1 điểm (-1). Nếu vắng mặt từ 5 buổi trở lên (≥ 5), điểm quá trình sẽ bị trừ 2 điểm (-2).",
+    "retrieved_contexts": "Điều 5. Điểm học phần\n2. ... Đối với các giờ lên lớp, kết quả điểm danh có thể được sử dụng để cộng/trừ vào điểm quá trình của học phần như sau:\nSố lần vắng mặt: 0 1-2 3-4 ≥ 5\nĐiểm quá trình được cộng/trừ: +1 0 -1 -2"
+  },
+  {
+    "id": 20,
+    "user_input": "Học phần đạt điểm chữ C+ và D+ thì quy đổi sang điểm số thang 4 tương ứng là bao nhiêu điểm?",
+    "response": "Theo bảng quy đổi tại khoản 6 Điều 5, điểm chữ C+ tương đương với điểm số quy đổi là 2,5; còn điểm D+ tương đương với điểm số quy đổi là 1,5 theo thang 4.",
+    "retrieved_contexts": "Điều 5. Điểm học phần\n6. Điểm học phần được tính từ tổng điểm thành phần với trọng số tương ứng, làm tròn tới một chữ số thập phân và quy đổi thành điểm chữ theo quy tắc dưới đây...\nĐiểm chữ quy đổi F D D+ C C+ B B+ A A+\nĐiểm số quy đổi 0 1 1,5 2,0 2,5 3,0 3,5 4,0 4,0"
+  },
+  {
+    "id": 21,
+    "user_input": "Em nộp đơn xin nghỉ học tạm thời (lý do cá nhân) vào tuần thứ 5 của học kỳ và được duyệt. Vậy các môn em đã đăng ký sẽ xử lý ra sao và em có được hoàn lại toàn bộ học phí không?",
+    "response": "Theo khoản 4 Điều 16, khi chế độ nghỉ học tạm thời có hiệu lực, các học phần đã đăng ký trong học kỳ sẽ bị hủy và học phí được tính theo quy định tại khoản 4 Điều 9. Theo đó, do đơn xin nghỉ học tạm thời được giải quyết trong thời gian 7 tuần đầu của học kỳ, sinh viên vẫn phải đóng 50% học phí của học kỳ đó, nên sẽ không được hoàn lại toàn bộ.",
+    "retrieved_contexts": "Điều 16. Nghỉ học tạm thời và tự nguyện thôi học\n4. Khi chế độ nghỉ tạm thời có hiệu lực thì các học phần đã đăng ký học trong học kỳ sẽ bị hủy và tính học phí theo quy định tại khoản 4 Điều 9 Quy chế này, ngoại trừ các trường hợp được quy định tại điểm b, điểm c khoản 2 Điều 16 Quy chế này sẽ do Giám đốc ĐHBK Hà Nội quyết định việc tính học phí.\nĐiều 9. Học phí\n4. Người học thuộc CTĐT cử nhân, kỹ sư có đơn đề nghị thôi học, nghỉ học tạm thời hoặc chuyển cơ sở đào tạo trong khoảng thời gian 7 tuần đầu của học kỳ, nếu được giải quyết theo nguyện vọng thì phải đóng một nửa (50%) học phí của học kỳ đó. Quy định này không áp dụng với kỳ hè."
+  },
+  {
+    "id": 22,
+    "user_input": "Kỳ trước em lười quá nên tổng số tín chỉ nợ đọng từ đầu khóa là 25 tín chỉ. Em học chương trình chuẩn. Vậy kỳ này em được phép đăng ký tối đa bao nhiêu tín chỉ để không bị vi phạm quy chế?",
+    "response": "Với 25 tín chỉ nợ đọng (> 24 tín chỉ), theo điểm c khoản 1 Điều 19, sinh viên sẽ bị áp dụng cảnh báo học tập mức 3. Khi bị cảnh báo từ mức 2 trở lên, theo điểm a khoản 2 Điều 19, sinh viên thuộc chương trình chuẩn bị áp dụng hình thức hạn chế khối lượng học tập và chỉ được phép đăng ký tối đa 14 tín chỉ trong một học kỳ chính.",
+    "retrieved_contexts": "Điều 19. Cảnh báo học tập và buộc thôi học\n1. Kết quả học tập được đánh giá vào cuối mỗi học kỳ chính để xác định mức độ cảnh báo học tập với sinh viên và được quy định như sau:\nc) Áp dụng cảnh báo học tập mức 3 đối với sinh viên có số TC nợ đọng từ đầu khóa lớn hơn 24.\n2. Hạn chế khối lượng học tập là hình thức buộc những sinh viên đang bị cảnh báo học tập từ mức 2 trở lên đăng ký số TC học phần ít hơn bình thường tại học kỳ 1 của năm học, cụ thể như sau:\na) Sinh viên thuộc các CTĐT chuẩn được đăng ký tối đa 14 TC và tối thiểu 8 TC cho một học kỳ chính"
+  },
+  {
+    "id": 23,
+    "user_input": "Em là sinh viên năm nhất, điểm CPA của em đang là 2.8 thang 4. Em chưa bị kỷ luật hay cảnh báo học tập bao giờ. Liệu em đã đủ điều kiện về học lực để làm đơn xin chuyển ngành chưa?",
+    "response": "Theo điểm b khoản 1 Điều 17, điều kiện học lực để chuyển chương trình là xếp loại căn cứ theo CPA đạt từ loại Khá trở lên (CPA >= 2,5). Đối chiếu với bảng xếp loại tại khoản 6 Điều 12, mức CPA 2,8 nằm trong dải 2,5-3,19 tương đương học lực Khá. Kết hợp với việc chưa bị cảnh báo học tập và kỷ luật, sinh viên đã hoàn toàn đủ điều kiện về học lực để làm đơn xin chuyển ngành.",
+    "retrieved_contexts": "Điều 17. Chuyển chương trình đào tạo, hình thức đào tạo\n1. Sinh viên học hết năm học thứ nhất (tính cả thời gian nghỉ tạm thời nếu có) được xem xét chuyển sang học một CTĐT khác nếu đáp ứng đủ các điều kiện sau: ... b) Xếp loại học lực căn cứ theo điểm trung bình tích lũy (CPA) đạt từ loại khá trở lên (CPA ≥ 2,5);\nĐiều 12. Ý kiến phản hồi của người học, đánh giá kết quả học tập\n6. Sinh viên được xếp loại học lực theo học kỳ căn cứ điểm trung bình học kỳ và xếp loại học lực từ đầu khóa căn cứ điểm trung bình tích lũy như sau:\nGPA hoặc CPA < 1,0 1,0-1,99 2,0-2,49 2,5-3,19 3,2-3,59 3,6-4,0\nXếp loại Kém Yếu Trung bình Khá Giỏi Xuất sắc"
+  },
+  {
+    "id": 24,
+    "user_input": "Em thi cuối kỳ không đi được và không có lý do chính đáng. Vậy điểm thi của em tính thế nào, và môn đó em có được làm đơn xin hoãn thi hoặc xin thi lại vào đợt sau không?",
+    "response": "Theo điểm c khoản 5 Điều 5, việc không dự thi đúng lịch mà không có lý do chính đáng sẽ nhận điểm 0 ở bài thi đó. Đồng thời, theo khoản 1 Điều 6, sinh viên chỉ được thi cuối kỳ một lần và không có thi lại. Việc xin hoãn thi quy định tại khoản 3 Điều 6 chỉ áp dụng với trường hợp bị ốm, tai nạn hoặc có lý do chính đáng. Do đó, sinh viên không được hoãn thi hay thi lại và sẽ phải học lại môn đó nếu tổng kết bị trượt.",
+    "retrieved_contexts": "Điều 5. Điểm học phần\n5. ... c) Trường hợp người học không dự thi đúng lịch thi đã ấn định và không có lý do chính đáng thì điểm thi là điểm 0.\nĐiều 6. Hoãn thi, miễn thi, phúc tra và khiếu nại điểm\n1. Người học được thi cuối kỳ một lần đối với mỗi học phần đã đăng ký học trong học kỳ (kể cả trường hợp có điểm quá trình là điểm liệt) và không có lần thi lại.\n3. Người học không thể dự thi cuối kỳ một học phần (đã học và đã đóng học phí) do bị ốm, tai nạn hoặc vì lý do chính đáng thì được phép hoãn thi và được dự thi cuối kỳ học phần đó trong thời hạn 2 học kỳ chính tiếp theo"
+  },
+  {
+    "id": 25,
+    "user_input": "Em đã hoàn thành chương trình kỹ sư, điểm CPA toàn khóa là 3.65 và chưa từng bị kỷ luật. Tuy nhiên, trong tổng số 160 tín chỉ tích lũy của khóa học, em có 9 tín chỉ phải học lại. Liệu em có được nhận bằng kỹ sư loại Xuất sắc không?",
+    "response": "Theo khoản 6 Điều 12, CPA 3,65 nằm trong dải 3,6-4,0 tương ứng hạng tốt nghiệp Xuất sắc. Tuy nhiên, số tín chỉ học lại là 9 trên tổng 160 tín chỉ, chiếm tỷ lệ 5,625% (> 5%). Căn cứ điểm a khoản 2 Điều 24 đối với đào tạo kỹ sư, do khối lượng học lại vượt quá 5% tổng số tín chỉ dùng tính điểm trung bình toàn khóa, hạng tốt nghiệp sẽ bị giảm đi một mức. Do vậy, bằng tốt nghiệp kỹ sư của sinh viên sẽ bị hạ xuống loại Giỏi.",
+    "retrieved_contexts": "Điều 12. Ý kiến phản hồi của người học, đánh giá kết quả học tập\n6. Sinh viên được xếp loại học lực theo học kỳ căn cứ điểm trung bình học kỳ và xếp loại học lực từ đầu khóa căn cứ điểm trung bình tích lũy như sau: GPA hoặc CPA ... 3,6-4,0 Xếp loại ... Xuất sắc\nĐiều 24. Điểm trung bình toàn khóa và hạng tốt nghiệp kỹ sư\n2. Hạng tốt nghiệp được xếp dựa trên điểm trung bình toàn khóa như xếp loại học lực quy định tại khoản 6 Điều 12 của Quy chế này, riêng trong các trường hợp sau đây thì hạng tốt nghiệp của học viên có điểm trung bình toàn khóa xếp loại giỏi trở lên sẽ bị giảm một mức: a) Khối lượng của các học phần phải học lại vượt quá 5% của tổng số TC của các học phần được dùng tính điểm trung bình toàn khóa của CTĐT kỹ sư."
+  }
+]
