@@ -59,7 +59,7 @@ with st.sidebar:
             "Temperature:",
             min_value = 0.0,
             max_value = 1.0,
-            value = 0.5,
+            value = 0.1,
             step = 0.1,
         )
 
