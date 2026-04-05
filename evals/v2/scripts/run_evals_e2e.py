@@ -1,0 +1,185 @@
+import argparse
+import asyncio
+import json
+import os
+import random
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import openai
+import torch
+from dotenv import load_dotenv
+from pydantic import BaseModel
+from ragas import experiment
+from ragas.cache import DiskCacheBackend
+from ragas.embeddings import HuggingFaceEmbeddings
+from ragas.llms import llm_factory
+from ragas.metrics.collections import Faithfulness, AnswerCorrectness
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_random
+
+load_dotenv()
+
+DEFAULT_GENERATED_RESULTS = "evals/v2/results/eval_e2e_gen_20260405_082325.json"
+RAW_CACHE_DIR = Path("evals/v2/.raw_cache")
+
+
+class E2EGeneratedRow(BaseModel):
+    id: Any
+    query: str
+    predicted_response: str
+    reference: str
+    retrieved_contexts: list[str]
+
+
+class E2EScores(BaseModel):
+    faithfulness: float
+    answer_correctness: float
+
+
+class E2EScoredRow(BaseModel):
+    id: Any
+    query: str
+    predicted_response: str
+    reference: str
+    retrieved_contexts: list[str]
+    scores: E2EScores
+
+
+def _random_offset_sleep(min_seconds: int = 30, max_seconds: int = 60) -> None:
+    seconds = random.randint(min_seconds, max_seconds)
+    print(f"[score_offset] Sleeping {seconds}s...")
+    time.sleep(seconds)
+
+
+def _is_rate_limited_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return ("429" in message) or ("rate limit" in message) or ("too many requests" in message) or ("400" in message and "json_validate_failed" in message)
+
+
+def _normalize_experiment_results(exp_results: Any) -> list[E2EScoredRow]:
+    if isinstance(exp_results, list):
+        normalized = exp_results
+    elif hasattr(exp_results, "results"):
+        normalized = [it.output if hasattr(it, "output") else it for it in exp_results.results]
+    else:
+        normalized = [exp_results]
+
+    rows: list[E2EScoredRow] = []
+    for item in normalized:
+        if isinstance(item, E2EScoredRow):
+            rows.append(item)
+        elif isinstance(item, dict):
+            rows.append(E2EScoredRow.model_validate(item))
+        else:
+            rows.append(E2EScoredRow.model_validate(item.model_dump()))
+    return rows
+
+
+async def run_scoring(generated_results_path: str, output_path: str) -> None:
+    if "GROQ_API_KEY" not in os.environ:
+        raise EnvironmentError("GROQ_API_KEY is required in environment or .env")
+
+    raw = json.loads(Path(generated_results_path).read_text(encoding="utf-8"))
+    dataset = [E2EGeneratedRow.model_validate(row) for row in raw.get("results", [])]
+
+    RAW_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cacher = DiskCacheBackend(cache_dir=str(RAW_CACHE_DIR))
+    async_openai_client = openai.AsyncOpenAI(
+        base_url="https://api.groq.com/openai/v1",
+        api_key=os.environ.get("GROQ_API_KEY"),
+    )
+    judge_llm = llm_factory(
+        "llama-3.3-70b-versatile",
+        client=async_openai_client,
+        provider="openai",
+        temperature=0.0,
+        cache=cacher,
+    )
+
+    faithfulness_metric = Faithfulness(llm=judge_llm)
+    ragas_embeddings = HuggingFaceEmbeddings(
+        model="BAAI/bge-m3",
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        normalize_embeddings=True,
+    )
+    answer_correctness_metric = AnswerCorrectness(llm=judge_llm, embeddings=ragas_embeddings)
+
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_random(min=30, max=60),
+        retry=retry_if_exception(_is_rate_limited_error),
+        reraise=True,
+    )
+    async def _score_metrics(row: E2EGeneratedRow) -> tuple[float, float]:
+        faithfulness = await faithfulness_metric.ascore(
+            user_input=row.query,
+            response=row.predicted_response,
+            retrieved_contexts=row.retrieved_contexts,
+        )
+        answer_correctness = await answer_correctness_metric.ascore(
+            user_input=row.query,
+            response=row.predicted_response,
+            reference=row.reference,
+        )
+        return float(faithfulness.value), float(answer_correctness.value)
+
+    @experiment(E2EScoredRow)
+    async def score_row(row: E2EGeneratedRow) -> E2EScoredRow:
+        faithfulness_val, answer_correctness_val = await _score_metrics(row)
+
+        return E2EScoredRow(
+            id=row.id,
+            query=row.query,
+            predicted_response=row.predicted_response,
+            reference=row.reference,
+            retrieved_contexts=row.retrieved_contexts,
+            scores=E2EScores(
+                faithfulness=faithfulness_val,
+                answer_correctness=answer_correctness_val,
+            ),
+        )
+
+    results: list[dict[str, Any]] = []
+    for i, row in enumerate(dataset):
+        exp_result = await score_row(row)
+        parsed = _normalize_experiment_results(exp_result)
+        results.extend([item.model_dump() for item in parsed])
+        if i < len(dataset) - 1:
+            _random_offset_sleep(30, 60)
+
+    metric_names = ("faithfulness", "answer_correctness")
+    aggregate_scores: dict[str, float | None] = {}
+    for metric in metric_names:
+        vals = [float(r["scores"][metric]) for r in results if metric in r.get("scores", {})]
+        aggregate_scores[metric] = round(sum(vals) / len(vals), 4) if vals else None
+
+    output = {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "aggregate_scores": aggregate_scores,
+        "dataset_path": raw.get("dataset_path", ""),
+        "num_samples": len(results),
+        "results": results,
+    }
+
+    out_file = Path(output_path)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Saved scored e2e results to: {out_file}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Score generated responses with Ragas (llama judge)")
+    parser.add_argument("--generated-results", type=str, default=DEFAULT_GENERATED_RESULTS)
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=f"evals/v2/results/eval_e2e_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+    )
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    asyncio.run(run_scoring(generated_results_path=args.generated_results, output_path=args.output))
