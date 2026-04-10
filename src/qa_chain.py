@@ -3,9 +3,7 @@ import sys
 sys.path.append(os.path.abspath('.'))
 import pickle
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_classic.storage import LocalFileStore, EncoderBackedStore
 from langchain_groq import ChatGroq
 from langchain_chroma import Chroma
@@ -17,6 +15,7 @@ from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnableLambda, RunnablePassthrough
 #parallel: chạy nhiều nhánh xử lý cùng 1 lúc, lambda: định nghĩa lambda nhưng thiết kế theo 
 #dạng trigger on time. Passthrough: truyền type on time
+from src.chat_history_database import get_postgres_history
 from langsmith import traceable
 
 from dotenv import load_dotenv
@@ -37,12 +36,6 @@ def format_docs(docs):
 
     return "\n\n".join(formatted)
 
-store = {}
-def get_session_history(session_id : str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    
-    return store[session_id]
 
 #base model pydantic output for query rephrasing (multi-query expansion)
 #Aka query decomposition
@@ -374,7 +367,7 @@ def get_chain(k, temperature, embedding_model, reranker_model):
 
     chain_with_history = RunnableWithMessageHistory(
         full_chain,
-        get_session_history,
+        get_postgres_history,
         input_messages_key= "question",
         history_messages_key= "chat_history",
         output_messages_key= "answer",
@@ -384,10 +377,13 @@ def get_chain(k, temperature, embedding_model, reranker_model):
 
 def debug_memory(session_id):
 
-    if session_id not in store:
-        return ["Chưa có lịch sử chat nào trong RAM này!"]
+    history_obj = get_postgres_history(session_id)
 
-    history_obj = store[session_id]
+    #lúc này langchain sẽ chạy câu select trong DB
+    messages = history_obj.messages
+
+    if not messages:
+        return ["Chưa có lịch sử chat nào trong Database của session này!"]
 
     readable_history = []
 
