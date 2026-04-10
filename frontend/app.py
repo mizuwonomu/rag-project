@@ -72,10 +72,7 @@ with st.sidebar:
         st.json(memory_content) 
 
         if st.button("🗑️ Xóa Trí Nhớ (Clear RAM)"):
-            from src.qa_chain import store
-            if current_session_id in store:
-                del store[current_session_id]
-                st.rerun()
+            st.rerun()
 
 #New chat button to reset conversation, return to home section
 st.markdown("""
@@ -100,10 +97,6 @@ def reset_conversation():
         st.session_state.messages = []
 
     current_session_id = "user_vjp_pro_1"
-    from src.qa_chain import store
-    if current_session_id in store:
-        del store[current_session_id]
-
     st.rerun()
 
 
