@@ -13,8 +13,21 @@ from src.qa_chain import get_chain, debug_memory
 from src.utils import get_embedding_model
 from src.reranker_utils import load_reranker
 import csv
-import os
+import uuid
 from datetime import datetime
+
+
+#Init state
+#đầu tiên sẽ cố định user_id để test, sau này có thể lấy từ việc login
+if "user_id" not in st.session_state:
+    st.session_state.user_id = "user_vjp_pro_1"
+
+#khởi tạo conversation_id nếu chưa có hay lần đầu vào web
+if "conv_id" not in st.session_state:
+    st.session_state.conv_id = str(uuid.uuid4()) #uuid4: random - pseudo, uuid5: deterministic nhờ hashing
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 st.set_page_config(
     page_title="HUST Regulations Bot",
@@ -96,7 +109,8 @@ def reset_conversation():
     if "messages" in st.session_state:
         st.session_state.messages = []
 
-    current_session_id = "user_vjp_pro_1"
+    #mỗi khi bấm new chat -> sinh ra một id hội thoại mới hoàn toàn
+    st.session_state.conv_id = str(uuid.uuid4())
     st.rerun()
 
 
@@ -150,7 +164,7 @@ def handle_query(question):
 
     with st.chat_message("ai"):
 
-        session_id = "user_vjp_pro_1"
+        session_id = f"{st.session_state.user_id}:{st.session_state.conv_id}" 
 
         #dùng st.write_stream để nhận generator 'yield' ở trên
         full_response = st.write_stream(stream_handler(rag_chain, question, session_id))
@@ -175,9 +189,6 @@ def handle_query(question):
     })
 
     
-#Init state
-if "messages" not in st.session_state:
-    st.session_state.messages = []
 
 #CHI ve 1 an duy nhat - tranh loi double display
 for msg in st.session_state.messages:
