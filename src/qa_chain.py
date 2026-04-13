@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.append(os.path.abspath('.'))
 import pickle
+import streamlit as st
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_classic.storage import LocalFileStore, EncoderBackedStore
@@ -44,7 +45,8 @@ class QueryExpansion(BaseModel):
     queries: List[str] = Field(description="Danh sách tối đa 3 câu hỏi đơn lẻ bằng tiếng Việt để tìm kiếm")
 
 @traceable(run_type='chain')
-def get_chain(k, temperature, embedding_model, reranker_model):
+@st.cache_resource
+def get_chain(k, temperature, embedding_model, _reranker_model):
     embedding_model = embedding_model
     #load vector store
     vector_store = Chroma(
@@ -84,7 +86,7 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     )
 
     #hugging-face based reranker (bge-reranker-v2-m3 by default)
-    reranker = reranker_model
+    reranker = _reranker_model
 
 
     #Custom chain de lay parent:
