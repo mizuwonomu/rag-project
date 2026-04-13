@@ -30,22 +30,30 @@ def get_db_connection():
     conn = psycopg.connect(DATABASE_URL)
     return conn
 
-def get_session_id(session_id: str) -> str:
-    str_session_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, session_id))
-    
-    return str_session_id
 
-
-def get_postgres_history(session_id: str) -> PostgresChatMessageHistory:
-    safe_uuid = get_session_id(session_id)
-
+def get_postgres_history(conversation_id: str) -> PostgresChatMessageHistory:
+    #sử dụng thẳng conversation_id uuid4 để map với bảng conversations
+    #với user_id
     conn = get_db_connection()
 
     #create history object
     history = PostgresChatMessageHistory(
         "chat_history",
-        safe_uuid,
+        conversation_id,
         sync_connection=conn,
     )
 
     return history
+
+
+def get_user_conversations(user_id: str):
+    conn = get_db_connection
+    with conn.cursor() as cur:
+        #truy cập vào bảng conversations để lấy title 
+        #title được tạo ra với mỗi hội thoại, tức tên cuộc hội thoại 
+        cur.execute(
+            "SELECT conversation_id, title FROM conversations WHERE user_id = %s ORDER BY created_at DESC",
+            (user_id,)
+        ) #lấy conversation gần nhất được tạo
+
+        return cur.fetchall()

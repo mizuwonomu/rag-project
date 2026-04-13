@@ -163,8 +163,8 @@ def handle_query(question):
     st.session_state.messages.append({"role": "user", "content": question})
 
     with st.chat_message("ai"):
-
-        session_id = f"{st.session_state.user_id}:{st.session_state.conv_id}" 
+        #map conv_id với user_id bên table khác
+        session_id = st.session_state.conv_id
 
         #dùng st.write_stream để nhận generator 'yield' ở trên
         full_response = st.write_stream(stream_handler(rag_chain, question, session_id))
