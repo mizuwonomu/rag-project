@@ -12,6 +12,7 @@ import streamlit as st
 from src.qa_chain import get_chain, debug_memory
 from src.utils import get_embedding_model
 from src.reranker_utils import load_reranker
+from src.config import RETRIEVER_TOP_K, LLM_TEMPERATURE
 import csv
 import uuid
 from datetime import datetime
@@ -117,7 +118,7 @@ def stream_handler(chain, question, session_id):
 def load_chain(k,temperature):
     return get_chain(k = k, temperature = temperature, embedding_model = embedding_model, _reranker_model = reranker_model)
 
-rag_chain = load_chain(k = 15, temperature = 0.1) #thay từ điều chỉnh slider -> hardload
+rag_chain = load_chain(k = RETRIEVER_TOP_K, temperature = LLM_TEMPERATURE) #thay từ điều chỉnh slider -> hardload
 
 #Tach rieng 2 initialization: 
 
