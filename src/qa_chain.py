@@ -16,7 +16,9 @@ from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnableLambda, RunnablePassthrough
 #parallel: chạy nhiều nhánh xử lý cùng 1 lúc, lambda: định nghĩa lambda nhưng thiết kế theo 
 #dạng trigger on time. Passthrough: truyền type on time
-from src.chat_history_database import get_postgres_history
+from .database.history_manager import get_postgres_history
+from .database.connection import get_db_connection
+
 from langsmith import traceable
 
 from dotenv import load_dotenv
@@ -36,6 +38,12 @@ def format_docs(docs):
         formatted.append(f"Source [{i+1}] ({source_title}):\n{content}")
 
     return "\n\n".join(formatted)
+
+#connect database
+def get_session_history(session_id: str):
+    conn = get_db_connection()
+
+    return get_postgres_history(conn, session_id)
 
 
 #base model pydantic output for query rephrasing (multi-query expansion)
@@ -369,7 +377,7 @@ def get_chain(k, temperature, embedding_model, _reranker_model):
 
     chain_with_history = RunnableWithMessageHistory(
         full_chain,
-        get_postgres_history,
+        get_session_history,
         input_messages_key= "question",
         history_messages_key= "chat_history",
         output_messages_key= "answer",
