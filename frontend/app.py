@@ -13,6 +13,16 @@ from src.qa_chain import get_chain, debug_memory
 from src.utils import get_embedding_model
 from src.reranker_utils import load_reranker
 from src.config import RETRIEVER_TOP_K, LLM_TEMPERATURE
+
+from src.database.connection import get_db_connection
+from src.database.conversation_queries import (
+    get_user_conversations, 
+    get_conversation_messages,
+    insert_title_conversations,
+)
+from src.services.background_tasks import fire_and_forget
+from src.services.title_generator import generate_title
+
 import csv
 import uuid
 from datetime import datetime
@@ -29,6 +39,12 @@ if "conv_id" not in st.session_state:
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+if "title_generation_started" not in st.session_state:
+    st.session_state.title_generation_started = set()
+
+if "selected_conversation_id" not in st.session_state:
+    st.session_state.selected_conversation_id = None
 
 st.set_page_config(
     page_title="HUST Regulations Bot",
@@ -53,12 +69,65 @@ def save_feedback(question, answer, rating, reason="", comment=""):
 embedding_model = get_embedding_model()
 reranker_model = load_reranker()
 
-#sidebar điều chỉnh kawrgs, temp
-with st.sidebar:
-    st.header("💬 Cuộc trò chuyện")
+def load_conversation_into_state(conversation_id: str):
+    """Load lại message từ database, chia rõ type message để render"""
+    conn = get_db_connection()
+    restored_messages = get_conversation_messages(conn, conversation_id)
 
-    st.divider()
+    ui_messages = []
+    for msg in restored_messages:
+        role = msg.get("role")
+        content = msg.get("content", "")
 
+        if role == "user":
+            ui_messages.append({"role": "user", "content": str(content)})
+
+        elif role == "ai":
+            ui_messages.append({"role": "ai", "content": str(content), "sources": []})
+
+    st.session_state.messages = ui_messages
+    st.session_state.conv_id = conversation_id
+
+def render_sidebar():
+    with st.sidebar:
+        st.header("💬 Cuộc trò chuyện")
+        st.divider()
+
+        conn = get_db_connection()
+        rows = get_user_conversations(conn, st.session_state.user_id)
+
+        options = [(conv_id, title or "Cuộc trò chuyện chưa có tiêu đề") for conv_id, title in rows]
+        current_conv_id = st.session_state.conv_id
+
+        if not options:
+            st.caption("Chưa có cuộc trò chuyện nào để tải lại.")
+            return
+
+        option_ids = [conv_id for conv_id, _ in options]
+        option_title_map = {conv_id: title for conv_id, title in options}
+
+        default_index = 0
+        if st.session_state.selected_conversation_id in option_ids:
+            default_index = option_ids.index(st.session_state.selected_conversation_id) #lấy index đầu tiên của conversation được chọn
+        elif current_conv_id in option_ids:
+            default_index = option_ids.index(current_conv_id)
+
+
+        selected_id = st.selectbox(
+            "Chọn cuộc trò chuyện",
+            options=option_ids,
+            index=default_index,
+            format_func=lambda cid: option_title_map[cid],
+            key="conversation_selectbox",
+        )
+        st.session_state.selected_conversation_id = selected_id
+
+        #load ngay lập tức khi người dùng chọn 1 title khác ở selectbox
+        if selected_id != current_conv_id:
+            load_conversation_into_state(selected_id)
+            st.rerun()
+
+render_sidebar()
     
 #New chat button to reset conversation, return to home section
 st.markdown("""
@@ -84,6 +153,7 @@ def reset_conversation():
 
     #mỗi khi bấm new chat -> sinh ra một id hội thoại mới hoàn toàn
     st.session_state.conv_id = str(uuid.uuid4())
+    st.session_state.selected_conversation_id = None
     st.rerun()
 
 
@@ -158,8 +228,31 @@ def handle_query(question):
         "sources": sources #avoid losing sources when reload
     })
 
-    
+    session_id = st.session_state.conv_id
+    user_id = st.session_state.user_id
+    message_count = len(st.session_state.messages) #khi bắt đầu có câu hỏi đầu tiên của user + answer của llm
+                                                   #tức 2 message trong state -> lập tức run task sinh title
 
+    is_first_exchange = message_count == 2
+    already_scheduled = session_id in st.session_state.title_generation_started
+
+    if is_first_exchange and not already_scheduled:
+        first_question = st.session_state.messages[0]["content"] #câu hỏi của user
+        first_response = st.session_state.messages[1]["content"] #response của llm
+        st.session_state.title_generation_started.add(session_id)
+
+
+        def _generate_and_save_title(conv_id: str, uid: str, first_q: str, first_r: str):
+            conn = get_db_connection()
+            title = generate_title(first_q, first_r)
+            insert_title_conversations(conn, conv_id, uid, title)
+
+
+        #thread sinh title độc lập với thread nhập input -> tức người dùng vẫn có thể nhập câu hỏi tiếp theo
+        #và thread sinh title chạy ngầm
+        fire_and_forget(_generate_and_save_title, session_id, user_id, first_question, first_response)
+
+        
 #CHI ve 1 an duy nhat - tranh loi double display
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
