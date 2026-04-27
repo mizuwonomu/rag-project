@@ -40,11 +40,21 @@ if "conv_id" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+#trigger bắt đầu khởi tạo title
 if "title_generation_started" not in st.session_state:
     st.session_state.title_generation_started = set()
 
+#id của conversation được chọn từ sidebar
 if "selected_conversation_id" not in st.session_state:
     st.session_state.selected_conversation_id = None
+
+#conv id của riêng selectbox -> ngăn chặn overlap với conv_id mới khi tạo new chat 
+if "conversation_selectbox_id" not in st.session_state:
+    st.session_state.conversation_selectbox_id = None
+
+#flag để check nếu có yêu cầu load conversation hiện tại được chọn
+if "load_selected_conversation" not in st.session_state:
+    st.session_state.load_selected_conversation = False
 
 st.set_page_config(
     page_title="HUST Regulations Bot",
@@ -88,47 +98,10 @@ def load_conversation_into_state(conversation_id: str):
     st.session_state.messages = ui_messages
     st.session_state.conv_id = conversation_id
 
-def render_sidebar():
-    with st.sidebar:
-        st.header("💬 Cuộc trò chuyện")
-        st.divider()
+def _on_conversation_selected():
+    #interaction của chính user, thực hiện 1 lần trong render sidebar
+    st.session_state.load_selected_conversation = True
 
-        conn = get_db_connection()
-        rows = get_user_conversations(conn, st.session_state.user_id)
-
-        options = [(conv_id, title or "Cuộc trò chuyện chưa có tiêu đề") for conv_id, title in rows]
-        current_conv_id = st.session_state.conv_id
-
-        if not options:
-            st.caption("Chưa có cuộc trò chuyện nào để tải lại.")
-            return
-
-        option_ids = [conv_id for conv_id, _ in options]
-        option_title_map = {conv_id: title for conv_id, title in options}
-
-        default_index = 0
-        if st.session_state.selected_conversation_id in option_ids:
-            default_index = option_ids.index(st.session_state.selected_conversation_id) #lấy index đầu tiên của conversation được chọn
-        elif current_conv_id in option_ids:
-            default_index = option_ids.index(current_conv_id)
-
-
-        selected_id = st.selectbox(
-            "Chọn cuộc trò chuyện",
-            options=option_ids,
-            index=default_index,
-            format_func=lambda cid: option_title_map[cid],
-            key="conversation_selectbox",
-        )
-        st.session_state.selected_conversation_id = selected_id
-
-        #load ngay lập tức khi người dùng chọn 1 title khác ở selectbox
-        if selected_id != current_conv_id:
-            load_conversation_into_state(selected_id)
-            st.rerun()
-
-render_sidebar()
-    
 #New chat button to reset conversation, return to home section
 st.markdown("""
     <style>
@@ -154,15 +127,65 @@ def reset_conversation():
     #mỗi khi bấm new chat -> sinh ra một id hội thoại mới hoàn toàn
     st.session_state.conv_id = str(uuid.uuid4())
     st.session_state.selected_conversation_id = None
+    st.session_state.conversation_selectbox_id = None
+    st.session_state.load_selected_conversation = False
     st.rerun()
 
 
 # Marker element must be immediately before the button so the CSS sibling selector works
+#di chuyển button lên để update state trước key widget của selectbox
 st.markdown('<div id="new-chat-marker"></div>', unsafe_allow_html=True)
 if st.button("💬New Chat", key="new-chat-fixed", help="Xóa lịch sử và bắt đầu hội thoại mới"):
     reset_conversation()
 
+def render_sidebar():
+    with st.sidebar:
+        st.header("💬 Cuộc trò chuyện")
+        st.divider()
 
+        conn = get_db_connection()
+        rows = get_user_conversations(conn, st.session_state.user_id)
+
+        options = [(conv_id, title or "Cuộc trò chuyện chưa có tiêu đề") for conv_id, title in rows]
+        current_conv_id = st.session_state.conv_id
+
+        if not options:
+            st.caption("Chưa có cuộc trò chuyện nào để tải lại.")
+            return
+
+        option_ids = [conv_id for conv_id, _ in options]
+        option_title_map = {conv_id: title for conv_id, title in options}
+
+        default_index = 0
+        if st.session_state.selected_conversation_id in option_ids:
+            default_index = option_ids.index(st.session_state.selected_conversation_id) #lấy index đầu tiên của conversation được chọn
+
+        elif current_conv_id in option_ids:
+            default_index = option_ids.index(current_conv_id)
+
+        if st.session_state.conversation_selectbox_id not in option_ids:
+            st.session_state.conversation_selectbox_id = option_ids[default_index]
+
+        selected_id = st.selectbox(
+            "Chọn cuộc trò chuyện",
+            options=option_ids,
+            index=default_index,
+            format_func=lambda cid: option_title_map[cid],
+            key="conversation_selectbox_id",
+            on_change=_on_conversation_selected
+        )
+        st.session_state.selected_conversation_id = selected_id
+
+        #chỉ load khi người dùng thay đổi selectbox value, tức chọn conversation khác nhau trong selectbox
+        if st.session_state.load_selected_conversation and selected_id != current_conv_id:
+            st.session_state.load_selected_conversation = False
+            load_conversation_into_state(selected_id)
+            st.rerun()
+        st.session_state.load_selected_conversation = False #reset flag nếu có gặp new chat trigger -> không còn query và tiếp tục render message cũ 
+                                                            #của cuộc hội thoại gần nhất
+
+render_sidebar()
+    
 def stream_handler(chain, question, session_id):
 
     #input(入力) phải là Dict (辞書型), gồm answer, context, nên ta phải tách answer cho Streamlit hiển thị
