@@ -12,9 +12,49 @@ import streamlit as st
 from src.qa_chain import get_chain, debug_memory
 from src.utils import get_embedding_model
 from src.reranker_utils import load_reranker
+from src.config import RETRIEVER_TOP_K, LLM_TEMPERATURE
+
+from src.database.connection import get_db_connection
+from src.database.conversation_queries import (
+    get_user_conversations, 
+    get_conversation_messages,
+    insert_title_conversations,
+)
+from src.services.background_tasks import fire_and_forget
+from src.services.title_generator import generate_title
+
 import csv
-import os
+import uuid
 from datetime import datetime
+
+
+#Init state
+#đầu tiên sẽ cố định user_id để test, sau này có thể lấy từ việc login
+if "user_id" not in st.session_state:
+    st.session_state.user_id = "user_vjp_pro_1"
+
+#khởi tạo conversation_id nếu chưa có hay lần đầu vào web
+if "conv_id" not in st.session_state:
+    st.session_state.conv_id = str(uuid.uuid4()) #uuid4: random - pseudo, uuid5: deterministic nhờ hashing
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+#trigger bắt đầu khởi tạo title
+if "title_generation_started" not in st.session_state:
+    st.session_state.title_generation_started = set()
+
+#id của conversation được chọn từ sidebar
+if "selected_conversation_id" not in st.session_state:
+    st.session_state.selected_conversation_id = None
+
+#conv id của riêng selectbox -> ngăn chặn overlap với conv_id mới khi tạo new chat 
+if "conversation_selectbox_id" not in st.session_state:
+    st.session_state.conversation_selectbox_id = None
+
+#flag để check nếu có yêu cầu load conversation hiện tại được chọn
+if "load_selected_conversation" not in st.session_state:
+    st.session_state.load_selected_conversation = False
 
 st.set_page_config(
     page_title="HUST Regulations Bot",
@@ -39,43 +79,28 @@ def save_feedback(question, answer, rating, reason="", comment=""):
 embedding_model = get_embedding_model()
 reranker_model = load_reranker()
 
-#sidebar điều chỉnh kawrgs, temp
-with st.sidebar:
-    st.header("⚙️ Cài đặt")
+def load_conversation_into_state(conversation_id: str):
+    """Load lại message từ database, chia rõ type message để render"""
+    conn = get_db_connection()
+    restored_messages = get_conversation_messages(conn, conversation_id)
 
-    st.divider()
+    ui_messages = []
+    for msg in restored_messages:
+        role = msg.get("role")
+        content = msg.get("content", "")
 
-    with st.expander("🛠️ Cấu hình nâng cao (Dev Mode)"):
-        st.caption("Lưu ý: Chỉ chỉnh tham số khi chắc chắn!")
+        if role == "user":
+            ui_messages.append({"role": "user", "content": str(content)})
 
-        k_slider = st.slider(
-        "Số lượng chunk tìm kiếm: (k):",
-        min_value = 1,
-        max_value = 15,
-        value = 15,
-        step = 1,
-        )
-        temperature_slider = st.slider(
-            "Temperature:",
-            min_value = 0.0,
-            max_value = 1.0,
-            value = 0.1,
-            step = 0.1,
-        )
+        elif role == "ai":
+            ui_messages.append({"role": "ai", "content": str(content), "sources": []})
 
-        st.divider()
-        st.caption("🧠Memory Debug")
-        st.info("Đây là những gì bot đang nhớ hiện tại")
+    st.session_state.messages = ui_messages
+    st.session_state.conv_id = conversation_id
 
-        current_session_id = "user_vjp_pro_1"
-        memory_content = debug_memory(current_session_id)
-        st.json(memory_content) 
-
-        if st.button("🗑️ Xóa Trí Nhớ (Clear RAM)"):
-            from src.qa_chain import store
-            if current_session_id in store:
-                del store[current_session_id]
-                st.rerun()
+def _on_conversation_selected():
+    #interaction của chính user, thực hiện 1 lần trong render sidebar
+    st.session_state.load_selected_conversation = True
 
 #New chat button to reset conversation, return to home section
 st.markdown("""
@@ -99,23 +124,68 @@ def reset_conversation():
     if "messages" in st.session_state:
         st.session_state.messages = []
 
-    current_session_id = "user_vjp_pro_1"
-    from src.qa_chain import store
-    if current_session_id in store:
-        del store[current_session_id]
-
+    #mỗi khi bấm new chat -> sinh ra một id hội thoại mới hoàn toàn
+    st.session_state.conv_id = str(uuid.uuid4())
+    st.session_state.selected_conversation_id = None
+    st.session_state.conversation_selectbox_id = None
+    st.session_state.load_selected_conversation = False
     st.rerun()
 
 
 # Marker element must be immediately before the button so the CSS sibling selector works
+#di chuyển button lên để update state trước key widget của selectbox
 st.markdown('<div id="new-chat-marker"></div>', unsafe_allow_html=True)
 if st.button("💬New Chat", key="new-chat-fixed", help="Xóa lịch sử và bắt đầu hội thoại mới"):
     reset_conversation()
 
+def render_sidebar():
+    with st.sidebar:
+        st.header("💬 Cuộc trò chuyện")
+        st.divider()
 
-k_value = k_slider
-temperature_value = temperature_slider
+        conn = get_db_connection()
+        rows = get_user_conversations(conn, st.session_state.user_id)
 
+        options = [(conv_id, title or "Cuộc trò chuyện chưa có tiêu đề") for conv_id, title in rows]
+        current_conv_id = st.session_state.conv_id
+
+        if not options:
+            st.caption("Chưa có cuộc trò chuyện nào để tải lại.")
+            return
+
+        option_ids = [conv_id for conv_id, _ in options]
+        option_title_map = {conv_id: title for conv_id, title in options}
+
+        default_index = 0
+        if st.session_state.selected_conversation_id in option_ids:
+            default_index = option_ids.index(st.session_state.selected_conversation_id) #lấy index đầu tiên của conversation được chọn
+
+        elif current_conv_id in option_ids:
+            default_index = option_ids.index(current_conv_id)
+
+        if st.session_state.conversation_selectbox_id not in option_ids:
+            st.session_state.conversation_selectbox_id = option_ids[default_index]
+
+        selected_id = st.selectbox(
+            "Chọn cuộc trò chuyện",
+            options=option_ids,
+            index=default_index,
+            format_func=lambda cid: option_title_map[cid],
+            key="conversation_selectbox_id",
+            on_change=_on_conversation_selected
+        )
+        st.session_state.selected_conversation_id = selected_id
+
+        #chỉ load khi người dùng thay đổi selectbox value, tức chọn conversation khác nhau trong selectbox
+        if st.session_state.load_selected_conversation and selected_id != current_conv_id:
+            st.session_state.load_selected_conversation = False
+            load_conversation_into_state(selected_id)
+            st.rerun()
+        st.session_state.load_selected_conversation = False #reset flag nếu có gặp new chat trigger -> không còn query và tiếp tục render message cũ 
+                                                            #của cuộc hội thoại gần nhất
+
+render_sidebar()
+    
 def stream_handler(chain, question, session_id):
 
     #input(入力) phải là Dict (辞書型), gồm answer, context, nên ta phải tách answer cho Streamlit hiển thị
@@ -139,9 +209,9 @@ def stream_handler(chain, question, session_id):
 
 
 def load_chain(k,temperature):
-    return get_chain(k = k, temperature = temperature, embedding_model = embedding_model, reranker_model = reranker_model)
+    return get_chain(k = k, temperature = temperature, embedding_model = embedding_model, _reranker_model = reranker_model)
 
-rag_chain = load_chain(k = k_value, temperature = temperature_value)
+rag_chain = load_chain(k = RETRIEVER_TOP_K, temperature = LLM_TEMPERATURE) #thay từ điều chỉnh slider -> hardload
 
 #Tach rieng 2 initialization: 
 
@@ -156,8 +226,8 @@ def handle_query(question):
     st.session_state.messages.append({"role": "user", "content": question})
 
     with st.chat_message("ai"):
-
-        session_id = "user_vjp_pro_1"
+        #map conv_id với user_id bên table khác
+        session_id = st.session_state.conv_id
 
         #dùng st.write_stream để nhận generator 'yield' ở trên
         full_response = st.write_stream(stream_handler(rag_chain, question, session_id))
@@ -181,11 +251,31 @@ def handle_query(question):
         "sources": sources #avoid losing sources when reload
     })
 
-    
-#Init state
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    session_id = st.session_state.conv_id
+    user_id = st.session_state.user_id
+    message_count = len(st.session_state.messages) #khi bắt đầu có câu hỏi đầu tiên của user + answer của llm
+                                                   #tức 2 message trong state -> lập tức run task sinh title
 
+    is_first_exchange = message_count == 2
+    already_scheduled = session_id in st.session_state.title_generation_started
+
+    if is_first_exchange and not already_scheduled:
+        first_question = st.session_state.messages[0]["content"] #câu hỏi của user
+        first_response = st.session_state.messages[1]["content"] #response của llm
+        st.session_state.title_generation_started.add(session_id)
+
+
+        def _generate_and_save_title(conv_id: str, uid: str, first_q: str, first_r: str):
+            conn = get_db_connection()
+            title = generate_title(first_q, first_r)
+            insert_title_conversations(conn, conv_id, uid, title)
+
+
+        #thread sinh title độc lập với thread nhập input -> tức người dùng vẫn có thể nhập câu hỏi tiếp theo
+        #và thread sinh title chạy ngầm
+        fire_and_forget(_generate_and_save_title, session_id, user_id, first_question, first_response)
+
+        
 #CHI ve 1 an duy nhat - tranh loi double display
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):

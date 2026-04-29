@@ -2,10 +2,9 @@ import os
 import sys
 sys.path.append(os.path.abspath('.'))
 import pickle
+import streamlit as st
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_classic.storage import LocalFileStore, EncoderBackedStore
 from langchain_groq import ChatGroq
 from langchain_chroma import Chroma
@@ -17,6 +16,9 @@ from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnableLambda, RunnablePassthrough
 #parallel: chạy nhiều nhánh xử lý cùng 1 lúc, lambda: định nghĩa lambda nhưng thiết kế theo 
 #dạng trigger on time. Passthrough: truyền type on time
+from .database.history_manager import get_postgres_history
+from .database.connection import get_db_connection
+
 from langsmith import traceable
 
 from dotenv import load_dotenv
@@ -37,12 +39,12 @@ def format_docs(docs):
 
     return "\n\n".join(formatted)
 
-store = {}
-def get_session_history(session_id : str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    
-    return store[session_id]
+#connect database
+def get_session_history(session_id: str):
+    conn = get_db_connection()
+
+    return get_postgres_history(conn, session_id)
+
 
 #base model pydantic output for query rephrasing (multi-query expansion)
 #Aka query decomposition
@@ -51,7 +53,8 @@ class QueryExpansion(BaseModel):
     queries: List[str] = Field(description="Danh sách tối đa 3 câu hỏi đơn lẻ bằng tiếng Việt để tìm kiếm")
 
 @traceable(run_type='chain')
-def get_chain(k, temperature, embedding_model, reranker_model):
+@st.cache_resource
+def get_chain(k, temperature, embedding_model, _reranker_model):
     embedding_model = embedding_model
     #load vector store
     vector_store = Chroma(
@@ -91,7 +94,7 @@ def get_chain(k, temperature, embedding_model, reranker_model):
     )
 
     #hugging-face based reranker (bge-reranker-v2-m3 by default)
-    reranker = reranker_model
+    reranker = _reranker_model
 
 
     #Custom chain de lay parent:
@@ -384,10 +387,13 @@ def get_chain(k, temperature, embedding_model, reranker_model):
 
 def debug_memory(session_id):
 
-    if session_id not in store:
-        return ["Chưa có lịch sử chat nào trong RAM này!"]
+    history_obj = get_postgres_history(session_id)
 
-    history_obj = store[session_id]
+    #lúc này langchain sẽ chạy câu select trong DB
+    messages = history_obj.messages
+
+    if not messages:
+        return ["Chưa có lịch sử chat nào trong Database của session này!"]
 
     readable_history = []
 
