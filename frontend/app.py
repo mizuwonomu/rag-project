@@ -23,40 +23,16 @@ from src.database.conversation_queries import (
 from src.services.background_tasks import fire_and_forget
 from src.services.title_generator import generate_title
 
-
 from frontend.deps import AppDeps
+from frontend.state.session_state import bootstrap_session_state, reset_conversation_state
+
 import csv
 import uuid
 from datetime import datetime
 
 
 #Init state
-#đầu tiên sẽ cố định user_id để test, sau này có thể lấy từ việc login
-if "user_id" not in st.session_state:
-    st.session_state.user_id = "user_vjp_pro_1"
-
-#khởi tạo conversation_id nếu chưa có hay lần đầu vào web
-if "conv_id" not in st.session_state:
-    st.session_state.conv_id = str(uuid.uuid4()) #uuid4: random - pseudo, uuid5: deterministic nhờ hashing
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-#trigger bắt đầu khởi tạo title
-if "title_generation_started" not in st.session_state:
-    st.session_state.title_generation_started = set()
-
-#id của conversation được chọn từ sidebar
-if "selected_conversation_id" not in st.session_state:
-    st.session_state.selected_conversation_id = None
-
-#conv id của riêng selectbox -> ngăn chặn overlap với conv_id mới khi tạo new chat 
-if "conversation_selectbox_id" not in st.session_state:
-    st.session_state.conversation_selectbox_id = None
-
-#flag để check nếu có yêu cầu load conversation hiện tại được chọn
-if "load_selected_conversation" not in st.session_state:
-    st.session_state.load_selected_conversation = False
+bootstrap_session_state()
 
 st.set_page_config(
     page_title="HUST Regulations Bot",
@@ -129,23 +105,12 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-def reset_conversation():
-    if "messages" in st.session_state:
-        st.session_state.messages = []
-
-    #mỗi khi bấm new chat -> sinh ra một id hội thoại mới hoàn toàn
-    st.session_state.conv_id = str(uuid.uuid4())
-    st.session_state.selected_conversation_id = None
-    st.session_state.conversation_selectbox_id = None
-    st.session_state.load_selected_conversation = False
-    st.rerun()
-
 
 # Marker element must be immediately before the button so the CSS sibling selector works
 #di chuyển button lên để update state trước key widget của selectbox
 st.markdown('<div id="new-chat-marker"></div>', unsafe_allow_html=True)
 if st.button("💬New Chat", key="new-chat-fixed", help="Xóa lịch sử và bắt đầu hội thoại mới"):
-    reset_conversation()
+    reset_conversation_state()
 
 def render_sidebar():
     with st.sidebar:
