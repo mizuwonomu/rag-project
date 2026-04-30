@@ -23,6 +23,8 @@ from src.database.conversation_queries import (
 from src.services.background_tasks import fire_and_forget
 from src.services.title_generator import generate_title
 
+
+from frontend.deps import AppDeps
 import csv
 import uuid
 from datetime import datetime
@@ -78,11 +80,18 @@ def save_feedback(question, answer, rating, reason="", comment=""):
 
 embedding_model = get_embedding_model()
 reranker_model = load_reranker()
+rag_chain = get_chain(k=RETRIEVER_TOP_K, temperature=LLM_TEMPERATURE, embedding_model=embedding_model, _reranker_model=reranker_model)
+deps = AppDeps(
+    rag_chain=rag_chain,
+    db_connection_factory=get_db_connection,
+    title_generator=generate_title,
+    background_scheduler=fire_and_forget,
+)
+
 
 def load_conversation_into_state(conversation_id: str):
     """Load lại message từ database, chia rõ type message để render"""
-    conn = get_db_connection()
-    restored_messages = get_conversation_messages(conn, conversation_id)
+    restored_messages = get_conversation_messages(deps.db_connection_factory(), conversation_id)
 
     ui_messages = []
     for msg in restored_messages:
@@ -143,8 +152,7 @@ def render_sidebar():
         st.header("💬 Cuộc trò chuyện")
         st.divider()
 
-        conn = get_db_connection()
-        rows = get_user_conversations(conn, st.session_state.user_id)
+        rows = get_user_conversations(deps.db_connection_factory(), st.session_state.user_id)
 
         options = [(conv_id, title or "Cuộc trò chuyện chưa có tiêu đề") for conv_id, title in rows]
         current_conv_id = st.session_state.conv_id
@@ -208,11 +216,6 @@ def stream_handler(chain, question, session_id):
     
 
 
-def load_chain(k,temperature):
-    return get_chain(k = k, temperature = temperature, embedding_model = embedding_model, _reranker_model = reranker_model)
-
-rag_chain = load_chain(k = RETRIEVER_TOP_K, temperature = LLM_TEMPERATURE) #thay từ điều chỉnh slider -> hardload
-
 #Tach rieng 2 initialization: 
 
 #2 - Day moi la list chua context cua cau hoi cuoi cung (LLM memory)
@@ -266,14 +269,12 @@ def handle_query(question):
 
 
         def _generate_and_save_title(conv_id: str, uid: str, first_q: str, first_r: str):
-            conn = get_db_connection()
-            title = generate_title(first_q, first_r)
-            insert_title_conversations(conn, conv_id, uid, title)
+            insert_title_conversations(deps.db_connection_factory(), conv_id, uid, deps.title_generator(first_q, first_r))
 
 
         #thread sinh title độc lập với thread nhập input -> tức người dùng vẫn có thể nhập câu hỏi tiếp theo
         #và thread sinh title chạy ngầm
-        fire_and_forget(_generate_and_save_title, session_id, user_id, first_question, first_response)
+        deps.background_scheduler(_generate_and_save_title, session_id, user_id, first_question, first_response)
 
         
 #CHI ve 1 an duy nhat - tranh loi double display
