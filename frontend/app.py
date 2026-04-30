@@ -24,6 +24,7 @@ from src.services.background_tasks import fire_and_forget
 from src.services.title_generator import generate_title
 
 from frontend.components.new_chat import render_new_chat_button
+from frontend.components.feedback import render_feedback
 from frontend.deps import AppDeps
 from frontend.state.session_state import bootstrap_session_state, reset_conversation_state
 
@@ -41,19 +42,6 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed"
 )
-
-FEEDBACK_CSV = "feedback_log.csv"
-
-def save_feedback(question, answer, rating, reason="", comment=""):
-    file_exists = os.path.isfile(FEEDBACK_CSV)
-
-    with open(FEEDBACK_CSV, mode="a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["Timestamp", "Question", "Answer", "Rating", "Reason", "Comment"])
-
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        writer.writerow([timestamp, question, answer, rating, reason, comment])
 
 embedding_model = get_embedding_model()
 reranker_model = load_reranker()
@@ -307,48 +295,4 @@ elif prompt := st.chat_input("Nhập câu hỏi về quy chế, hoặc chat chit
     handle_query(prompt)
     st.rerun()
 
-@st.dialog("👉Giúp em hiểu tại sao đại ca không thích câu này?")
-def feedback_dialog():
-    reasons = st.multiselect(
-        "Chọn vấn đề đại ca gặp phải:",
-        ["Thông tin không chính xác", "Thiếu thông tin", "Thông tin thừa thãi", "Văn phong không phù hợp"],
-        key = f"reasons_{msg_len}"
-    )
-
-    other_comment = st.text_area("Ghi rõ hơn (nếu có):", key=f"comment_{msg_len}")
-
-    if st.button("Gửi đánh giá chi tiết", key=f"btn_gb_{msg_len}"):
-        last_msg = st.session_state.messages[-1]
-        last_user_msg = st.session_state.messages[-2] if len(st.session_state.messages) > 1 else {"content": "Unknown"}
-
-        save_feedback(
-            last_user_msg["content"],
-            last_msg["content"],
-            "Dislike",
-            reason=", ".join(reasons),
-            comment=other_comment
-        )
-        st.success("Đã ghi nhận, cảm ơn đại ca🙏! Sẽ bảo bot học lại bài thưa đại ca!")
-
-if st.session_state.messages and st.session_state.messages[-1]["role"] == "ai":
-    st.write("---")
-    st.caption("Đại ca thấy câu trả lời thế nào? (Feedback để giúp em khôn lên)")
-
-    col_fb, col_survey = st.columns([1, 4])
-
-    with col_fb:
-        msg_len = len(st.session_state.messages)
-        feedback = st.feedback("thumbs", key=f"fb_{msg_len}")
-
-    if feedback == 0:
-        feedback_dialog()
-
-    elif feedback == 1:
-        last_msg = st.session_state.messages[-1]
-        last_user_msg = st.session_state.messages[-2] if len(st.session_state.messages) > 1 else {"content": "Unknown"}
-        save_feedback(
-            last_user_msg["content"],
-            last_msg["content"],
-            "Like"
-        )
-        st.toast(f"Cảm ơn đại ca đã ủng hộ🙏!", icon= "💾")
+render_feedback()
