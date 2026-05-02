@@ -40,3 +40,12 @@ def handle_query(question: str, deps):
         #thread sinh title độc lập với thread nhập input -> tức người dùng vẫn có thể nhập câu hỏi tiếp theo
         #và thread sinh title chạy ngầm
         deps.background_scheduler(_generate_and_save_title, session_id, user_id, first_question, first_response)
+        st.session_state.pending_sidebar_title_sync = True
+
+    should_refresh_sidebar_title = (
+        len(st.session_state.messages) == 3 and st.session_state.pending_sidebar_title_sync
+    )
+
+    if should_refresh_sidebar_title:
+        st.session_state.pending_sidebar_title_sync = False
+        st.rerun()

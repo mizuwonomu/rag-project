@@ -12,6 +12,7 @@ def bootstrap_session_state() -> None:
         "conversation_selectbox_id": None, #conv id của riêng selectbox -> ngăn chặn overlap với conv_id mới khi tạo new chat 
         "load_selected_conversation": False, #flag để check nếu có yêu cầu load conversation hiện tại được chọn
         "last_context": [],
+        "pending_sidebar_title_sync": False, #flag check nếu message state hiện tại > 2 -> rerun để render sidebar title
     }
     for key,value in defaults.items():
         if key not in st.session_state:
