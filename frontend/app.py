@@ -24,6 +24,7 @@ from src.services.background_tasks import fire_and_forget
 from src.services.title_generator import generate_title
 
 from frontend.components.new_chat import render_new_chat_button
+from frontend.components.sidebar import render_sidebar
 from frontend.components.feedback import render_feedback
 from frontend.deps import AppDeps
 from frontend.state.session_state import bootstrap_session_state, reset_conversation_state
@@ -53,77 +54,9 @@ deps = AppDeps(
     background_scheduler=fire_and_forget,
 )
 
-
-def load_conversation_into_state(conversation_id: str):
-    """Load lại message từ database, chia rõ type message để render"""
-    restored_messages = get_conversation_messages(deps.db_connection_factory(), conversation_id)
-
-    ui_messages = []
-    for msg in restored_messages:
-        role = msg.get("role")
-        content = msg.get("content", "")
-
-        if role == "user":
-            ui_messages.append({"role": "user", "content": str(content)})
-
-        elif role == "ai":
-            ui_messages.append({"role": "ai", "content": str(content), "sources": []})
-
-    st.session_state.messages = ui_messages
-    st.session_state.conv_id = conversation_id
-
-def _on_conversation_selected():
-    #interaction của chính user, thực hiện 1 lần trong render sidebar
-    st.session_state.load_selected_conversation = True
-
 render_new_chat_button(reset_conversation_state)
 
-def render_sidebar():
-    with st.sidebar:
-        st.header("💬 Cuộc trò chuyện")
-        st.divider()
-
-        rows = get_user_conversations(deps.db_connection_factory(), st.session_state.user_id)
-
-        options = [(conv_id, title or "Cuộc trò chuyện chưa có tiêu đề") for conv_id, title in rows]
-        current_conv_id = st.session_state.conv_id
-
-        if not options:
-            st.caption("Chưa có cuộc trò chuyện nào để tải lại.")
-            return
-
-        option_ids = [conv_id for conv_id, _ in options]
-        option_title_map = {conv_id: title for conv_id, title in options}
-
-        default_index = 0
-        if st.session_state.selected_conversation_id in option_ids:
-            default_index = option_ids.index(st.session_state.selected_conversation_id) #lấy index đầu tiên của conversation được chọn
-
-        elif current_conv_id in option_ids:
-            default_index = option_ids.index(current_conv_id)
-
-        if st.session_state.conversation_selectbox_id not in option_ids:
-            st.session_state.conversation_selectbox_id = option_ids[default_index]
-
-        selected_id = st.selectbox(
-            "Chọn cuộc trò chuyện",
-            options=option_ids,
-            index=default_index,
-            format_func=lambda cid: option_title_map[cid],
-            key="conversation_selectbox_id",
-            on_change=_on_conversation_selected
-        )
-        st.session_state.selected_conversation_id = selected_id
-
-        #chỉ load khi người dùng thay đổi selectbox value, tức chọn conversation khác nhau trong selectbox
-        if st.session_state.load_selected_conversation and selected_id != current_conv_id:
-            st.session_state.load_selected_conversation = False
-            load_conversation_into_state(selected_id)
-            st.rerun()
-        st.session_state.load_selected_conversation = False #reset flag nếu có gặp new chat trigger -> không còn query và tiếp tục render message cũ 
-                                                            #của cuộc hội thoại gần nhất
-
-render_sidebar()
+render_sidebar(deps.db_connection_factory)
     
 def stream_handler(chain, question, session_id):
 
@@ -145,13 +78,6 @@ def stream_handler(chain, question, session_id):
 
     st.session_state.last_context = full_context
     
-
-
-#Tach rieng 2 initialization: 
-
-#2 - Day moi la list chua context cua cau hoi cuoi cung (LLM memory)
-if "last_context" not in st.session_state:
-    st.session_state.last_context = []
 
 def handle_query(question):
     with st.chat_message("user"):
