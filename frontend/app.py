@@ -26,6 +26,7 @@ from src.services.title_generator import generate_title
 from frontend.components.new_chat import render_new_chat_button
 from frontend.components.sidebar import render_sidebar
 from frontend.components.feedback import render_feedback
+from frontend.components.source_panel import render_sources
 from frontend.deps import AppDeps
 from frontend.state.session_state import bootstrap_session_state, reset_conversation_state
 
@@ -138,17 +139,7 @@ def handle_query(question):
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-
-        if "sources" in msg and msg["sources"]:
-            st.divider() #Ke 1 duong phan cach
-            st.subheader("📚 Nguồn tài liệu tham khảo")
-            for i, doc in enumerate(msg["sources"]):
-                source_name = doc.metadata.get("title", f"Nguồn tài liệu #{i+1}")
-
-                with st.expander(f"📖 [{i+1}] {source_name}"):
-                    #highlight important keyword
-                    st.markdown(f"**Nội dung**")
-                    st.info(doc.page_content)
+        render_sources(msg.get("sources", []))
 
 
 #render UI
