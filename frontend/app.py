@@ -29,6 +29,7 @@ from frontend.components.feedback import render_feedback
 from frontend.components.source_panel import render_sources
 from frontend.deps import AppDeps
 from frontend.state.session_state import bootstrap_session_state, reset_conversation_state
+from frontend.workflows.chat_stream import render_streamed_ai_answer
 
 import csv
 import uuid
@@ -59,26 +60,6 @@ render_new_chat_button(reset_conversation_state)
 
 render_sidebar(deps.db_connection_factory)
     
-def stream_handler(chain, question, session_id):
-
-    #input(入力) phải là Dict (辞書型), gồm answer, context, nên ta phải tách answer cho Streamlit hiển thị
-    stream = chain.stream(
-        {"question": question},
-        config={"configurable": {"session_id": session_id}}
-    )
-
-    #Biến（変数) dùng để lưu lại nguồn (参照元の保存) (do nguồn thường trả về 1 cục, không stream từng chữ) 
-    full_context = None
-
-    for chunk in stream:
-        if "context" in chunk:
-            full_context = chunk["context"]
-
-        if "answer" in chunk:
-            yield chunk["answer"] #stream từng chữ cho streamlit
-
-    st.session_state.last_context = full_context
-    
 
 def handle_query(question):
     with st.chat_message("user"):
@@ -86,24 +67,8 @@ def handle_query(question):
 
     st.session_state.messages.append({"role": "user", "content": question})
 
-    with st.chat_message("ai"):
-        #map conv_id với user_id bên table khác
-        session_id = st.session_state.conv_id
-
-        #dùng st.write_stream để nhận generator 'yield' ở trên
-        full_response = st.write_stream(stream_handler(rag_chain, question, session_id))
-
-        sources = st.session_state.get("last_context", [])
-        if sources:
-            st.divider() #Ke 1 duong phan cach
-            st.subheader("📚 Nguồn tài liệu tham khảo")
-            for i, doc in enumerate(sources):
-                source_name = doc.metadata.get("title", f"Nguồn tài liệu #{i+1}")
-
-                with st.expander(f"📖 [{i+1}] {source_name}"):
-                    #highlight important keyword
-                    st.markdown(f"**Nội dung**")
-                    st.info(doc.page_content)
+    session_id = st.session_state.conv_id
+    full_response, sources = render_streamed_ai_answer(deps.rag_chain, question, session_id)
 
     #luu cau tra loi cua AI vao history de hien thi
     st.session_state.messages.append({
